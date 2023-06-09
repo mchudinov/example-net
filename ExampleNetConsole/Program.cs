@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using Serilog.Core;
 using Serilog.Debugging;
 
-namespace ConsoleApp1
+namespace ExampleNetConsole
 {
     internal class Program
     {

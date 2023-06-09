@@ -3,7 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace ConsoleApp1
+namespace ExampleNetConsole
 {
     public class TimedHostedService : IHostedService, IDisposable
     {
@@ -24,7 +24,8 @@ namespace ConsoleApp1
         {
             _watch.Start();
 
-            _logger.LogInformation("Timed Hosted Service running.");
+            _logger.LogInformation("Timed Hosted Service is running.");
+            _logger.LogInformation("TimedSpan = {TimeSpan}", _config.TimeSpan);
 
             _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds(_config.TimeSpan));
 

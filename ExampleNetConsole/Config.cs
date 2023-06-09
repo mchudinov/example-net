@@ -1,4 +1,4 @@
-﻿namespace ConsoleApp1
+﻿namespace ExampleNetConsole
 {
     public sealed class Config
     {
