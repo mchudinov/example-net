@@ -9,12 +9,12 @@ namespace ExampleNetConsole
     {
         private ulong _executionCount = 0;
         private readonly ILogger<TimedHostedService> _logger;
-        private readonly Config _config;
+        private readonly Settings _config;
         private Timer? _timer = null;
-        static Random _random = new();
-        static System.Diagnostics.Stopwatch _watch = new();
+        static readonly Random _random = new();
+        static readonly System.Diagnostics.Stopwatch _watch = new();
 
-        public TimedHostedService(ILogger<TimedHostedService> logger, IOptions<Config> config)
+        public TimedHostedService(ILogger<TimedHostedService> logger, IOptions<Settings> config)
         {
             _logger = logger;
             _config = config.Value;
@@ -79,7 +79,7 @@ namespace ExampleNetConsole
             }
         }
 
-        static T RandomEnumValue<T>()
+        static T RandomEnumValue<T>() where T : struct, Enum
         {
             var v = Enum.GetValues(typeof(T));
             return (T)v.GetValue(_random.Next(v.Length));
