@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,15 +10,18 @@ namespace ExampleNetConsole
     {
         private ulong _executionCount = 0;
         private readonly ILogger<TimedHostedService> _logger;
-        private readonly Settings _settings;
+        private readonly Settings? _settings;
         private Timer? _timer = null;
         static readonly Random _random = new();
         static readonly System.Diagnostics.Stopwatch _watch = new();
 
-        public TimedHostedService(ILogger<TimedHostedService> logger, IOptions<Settings> settings)
+        public TimedHostedService(ILogger<TimedHostedService> logger, IConfiguration configuration)
         {
+            _settings = configuration
+                .GetRequiredSection("Settings")
+                .Get<Settings>();
+
             _logger = logger;
-            _settings = settings.Value;
         }
 
         public Task StartAsync(CancellationToken stoppingToken)
@@ -25,9 +29,9 @@ namespace ExampleNetConsole
             _watch.Start();
 
             _logger.LogInformation("Timed Hosted Service is running.");
-            _logger.LogInformation("TimedSpan = {TimeSpan}", _settings.WorkerTimeSpan);
+            _logger.LogInformation("TimedSpan = {TimeSpan}", _settings?.TimeSpan);
 
-            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds(_settings.WorkerTimeSpan));
+            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds(_settings.TimeSpan));
 
             OutputEnvironmentVariables();
 

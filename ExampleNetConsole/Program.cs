@@ -32,14 +32,16 @@ namespace ExampleNetConsole
             {
                 var enviroment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
                 var configuration = new ConfigurationBuilder()
+                    .AddJsonFile("appsettings.json")
                     .AddJsonFile($"appsettings.{enviroment}.json", optional: false)
                     .Build();
                 var settings = configuration
-                    .GetSection("HostedService")
+                    .GetRequiredSection("Settings")
                     .Get<Settings>();               
 
                 using IHost host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
-                    .ConfigureHostConfiguration((builder) => {
+                    .ConfigureHostConfiguration(builder => 
+                    {
                         builder.AddConfiguration(configuration);
                     })
                     .ConfigureLogging(logging =>
@@ -56,7 +58,7 @@ namespace ExampleNetConsole
                         services.Configure<HostOptions>(options =>
                         {
                             options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost;
-                            options.ShutdownTimeout = TimeSpan.FromSeconds(settings.WorkerShutdownTimeout);
+                            options.ShutdownTimeout = TimeSpan.FromSeconds(settings.ShutdownTimeout);
                         });
                         services.AddHostedService<TimedHostedService>();
                     })
