@@ -4,14 +4,26 @@ namespace ExampleNetConsole
 {
     public sealed class Settings
     {
-        private double _timeSpan;
-        public required double TimeSpan
+        private double _workerTimeSpan;
+        private double _workerShutdownTimeout;
+
+        public required double WorkerTimeSpan
         {
-            get { return _timeSpan; }
-            set { _timeSpan = Convert.ToDouble(value); }
+            get { return _workerTimeSpan; }
+            set { _workerTimeSpan = Convert.ToDouble(value); }
+        }
+
+        public required double WorkerShutdownTimeout
+        {
+            get { return _workerShutdownTimeout; }
+            set { _workerShutdownTimeout = Convert.ToDouble(value); }
         }
 
         [SetsRequiredMembers]
-        public Settings() => TimeSpan = 1;
+        public Settings()
+        {
+            WorkerTimeSpan = 1;
+            WorkerShutdownTimeout = 1;
+        }
     }
 }

@@ -9,15 +9,15 @@ namespace ExampleNetConsole
     {
         private ulong _executionCount = 0;
         private readonly ILogger<TimedHostedService> _logger;
-        private readonly Settings _config;
+        private readonly Settings _settings;
         private Timer? _timer = null;
         static readonly Random _random = new();
         static readonly System.Diagnostics.Stopwatch _watch = new();
 
-        public TimedHostedService(ILogger<TimedHostedService> logger, IOptions<Settings> config)
+        public TimedHostedService(ILogger<TimedHostedService> logger, IOptions<Settings> settings)
         {
             _logger = logger;
-            _config = config.Value;
+            _settings = settings.Value;
         }
 
         public Task StartAsync(CancellationToken stoppingToken)
@@ -25,9 +25,9 @@ namespace ExampleNetConsole
             _watch.Start();
 
             _logger.LogInformation("Timed Hosted Service is running.");
-            _logger.LogInformation("TimedSpan = {TimeSpan}", _config.TimeSpan);
+            _logger.LogInformation("TimedSpan = {TimeSpan}", _settings.WorkerTimeSpan);
 
-            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds(_config.TimeSpan));
+            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds(_settings.WorkerTimeSpan));
 
             OutputEnvironmentVariables();
 

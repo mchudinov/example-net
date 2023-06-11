@@ -10,12 +10,15 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Builder;
 using Elastic.Apm.NetCoreAll;
 using Elastic.CommonSchema;
+using System.Configuration;
+using Elastic.Apm.Config;
+using Elastic.Apm.Api;
 
 namespace ExampleNetConsole
 {
-    internal class Program
+    internal sealed class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             Serilog.Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Override("Default", LogEventLevel.Debug)
@@ -27,37 +30,40 @@ namespace ExampleNetConsole
 
             try
             {
-                var hostAppBuilder = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder();// CreateApplicationBuilder();
-
                 var enviroment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
-                hostAppBuilder.Configuration.AddJsonFile($"appsettings.{enviroment}.json", optional: true);
-                hostAppBuilder.Services.Configure<Settings>(hostAppBuilder.Configuration);
-                
-                Logger serilog = new LoggerConfiguration()
-                        .ReadFrom.Configuration(hostAppBuilder.Configuration)
-                        .CreateLogger();
-                hostAppBuilder.Logging.ClearProviders();
-                hostAppBuilder.Logging.AddSerilog(serilog);
+                var configuration = new ConfigurationBuilder()
+                    .AddJsonFile($"appsettings.{enviroment}.json", optional: false)
+                    .Build();
+                var settings = configuration
+                    .GetSection("HostedService")
+                    .Get<Settings>();               
 
-                hostAppBuilder.Services.AddHostedService<TimedHostedService>();
+                using IHost host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
+                    .ConfigureHostConfiguration((builder) => {
+                        builder.AddConfiguration(configuration);
+                    })
+                    .ConfigureLogging(logging =>
+                    {
+                        logging.ClearProviders();
+                        Serilog.Log.Logger = new LoggerConfiguration()
+                            .ReadFrom.Configuration(configuration)
+                            .CreateLogger();
+                        logging.AddSerilog();
+                    })
+                    .ConfigureServices(services =>
+                    { 
+                        services.AddSingleton<Settings>(settings);
+                        services.Configure<HostOptions>(options =>
+                        {
+                            options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost;
+                            options.ShutdownTimeout = TimeSpan.FromSeconds(settings.WorkerShutdownTimeout);
+                        });
+                        services.AddHostedService<TimedHostedService>();
+                    })
+                    .UseAllElasticApm()
+                    .Build();
 
-
-                //hostAppBuilder.Services.AddLogging(config =>
-                //{
-                //    config.ClearProviders();
-
-                //    Logger logger = new LoggerConfiguration()
-                //        .ReadFrom.Configuration(hostAppBuilder.Configuration)
-                //        .CreateLogger();
-
-                //    config.AddSerilog(logger);
-                //});
-
-                Settings settings = new();
-                hostAppBuilder.Configuration.Bind(settings);
-                serilog.Debug("Settings = {settings}", settings);
-
-                hostAppBuilder.Build().Run();
+                await host.RunAsync();            
             }
             catch (Exception ex)
             {
@@ -65,15 +71,9 @@ namespace ExampleNetConsole
             }
             finally
             {
+                Serilog.Log.Information("Shut down complete");
                 Serilog.Log.CloseAndFlush();
             }
-        }
-
-        private static void test()
-        {
-            Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().UseAllElasticApm();
-            var builder = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder();
-            builder.UseAllElasticApm();
         }
     }
 }
