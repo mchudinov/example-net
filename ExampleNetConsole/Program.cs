@@ -12,6 +12,8 @@ namespace ExampleNetConsole
 {
     internal sealed class Program
     {
+        private const int DefaultTimeOutSec = 5;
+
         static async Task Main(string[] args)
         {
             Serilog.Log.Logger = new LoggerConfiguration()
@@ -46,16 +48,16 @@ namespace ExampleNetConsole
                     })
                     .ConfigureServices(services =>
                     { 
-                        services.AddSingleton<Settings>(settings);
+                        services.AddSingleton<Settings>((settings is null) ? new Settings() : settings);
                         services.Configure<HostOptions>(options =>
                         {
                             options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost;
-                            options.ShutdownTimeout = TimeSpan.FromSeconds(settings.ShutdownTimeout);
+                            options.ShutdownTimeout = TimeSpan.FromSeconds((settings is null) ? DefaultTimeOutSec : settings.ShutdownTimeout);
                         });
                         services.AddHostedService<TimedHostedService>();
                     });
 
-                    if (settings.UseApm) hostBuilder.UseElasticApm();
+                    if ((settings is not null) && settings.UseApm) hostBuilder.UseElasticApm();
 
                     using var host = hostBuilder.Build();
 

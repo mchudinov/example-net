@@ -2,12 +2,12 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace ExampleNetConsole
 {
     public class TimedHostedService : IHostedService, IDisposable
     {
+        private const int DefaultTimeSpanSec = 5;
         private ulong _executionCount = 0;
         private readonly ILogger<TimedHostedService> _logger;
         private readonly Settings? _settings;
@@ -31,7 +31,7 @@ namespace ExampleNetConsole
             _logger.LogInformation("Timed Hosted Service is running.");
             _logger.LogInformation("TimedSpan = {TimeSpan}", _settings?.TimeSpan);
 
-            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds(_settings.TimeSpan));
+            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds((_settings is null) ? DefaultTimeSpanSec : _settings.TimeSpan));
 
             OutputEnvironmentVariables();
 
@@ -44,7 +44,8 @@ namespace ExampleNetConsole
             {
                 var count = Interlocked.Increment(ref _executionCount);            
                 var lvl = RandomEnumValue<LogLevel>();
-                _logger.Log(lvl, "LogLevel={LogLevel} Count={Count} Uptime={Uptime}s Period={Period}", lvl, count, _watch.Elapsed.TotalSeconds, _watch.Elapsed.ToString(@"d\d\,\ hh\:mm\:ss"));        
+                _logger.Log(lvl, "LogLevel={LogLevel} Count={Count} Uptime={Uptime}s Period={Period}", 
+                    lvl, count, _watch.Elapsed.TotalSeconds, _watch.Elapsed.ToString(@"d\d\,\ hh\:mm\:ss"));        
             }
             catch (Exception ex)
             {
@@ -92,7 +93,7 @@ namespace ExampleNetConsole
         static T RandomEnumValue<T>() where T : struct, Enum
         {
             var v = Enum.GetValues(typeof(T));
-            return (T)v.GetValue(_random.Next(v.Length));
+            return (v is null) ? default : (T)v.GetValue(_random.Next(v.Length));
         }
     }
 }
