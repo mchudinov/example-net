@@ -40,10 +40,16 @@ namespace ExampleNetConsole
 
         private void DoWork(object? state)
         {
-            var count = Interlocked.Increment(ref _executionCount);
-            
-            var lvl = RandomEnumValue<LogLevel>();
-            _logger.Log(lvl, "LogLevel={LogLevel} Count={Count} Uptime={Uptime}s Period={Period}", lvl, count, _watch.Elapsed.TotalSeconds, _watch.Elapsed.ToString(@"d\d\,\ hh\:mm\:ss"));
+            try 
+            {
+                var count = Interlocked.Increment(ref _executionCount);            
+                var lvl = RandomEnumValue<LogLevel>();
+                _logger.Log(lvl, "LogLevel={LogLevel} Count={Count} Uptime={Uptime}s Period={Period}", lvl, count, _watch.Elapsed.TotalSeconds, _watch.Elapsed.ToString(@"d\d\,\ hh\:mm\:ss"));        
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, ex.Message);
+            }            
         }
 
         public Task StopAsync(CancellationToken stoppingToken)

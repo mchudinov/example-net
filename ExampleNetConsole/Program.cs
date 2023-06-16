@@ -3,16 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog.Events;
 using Microsoft.Extensions.Logging;
-using Serilog.Core;
 using Serilog.Debugging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Builder;
-using Elastic.Apm.NetCoreAll;
-using Elastic.CommonSchema;
-using System.Configuration;
-using Elastic.Apm.Config;
-using Elastic.Apm.Api;
+using Elastic.Apm.Extensions.Hosting;
 
 namespace ExampleNetConsole
 {
@@ -33,13 +27,11 @@ namespace ExampleNetConsole
                 var enviroment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
                 var configuration = new ConfigurationBuilder()
                     .AddJsonFile("appsettings.json")
-                    .AddJsonFile($"appsettings.{enviroment}.json", optional: false)
+                    .AddJsonFile($"appsettings.{enviroment}.json", optional: true)
                     .Build();
-                var settings = configuration
-                    .GetRequiredSection("Settings")
-                    .Get<Settings>();               
+                var settings = configuration.GetRequiredSection("Settings").Get<Settings>();               
 
-                using IHost host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
+                IHostBuilder hostBuilder = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
                     .ConfigureHostConfiguration(builder => 
                     {
                         builder.AddConfiguration(configuration);
@@ -61,9 +53,11 @@ namespace ExampleNetConsole
                             options.ShutdownTimeout = TimeSpan.FromSeconds(settings.ShutdownTimeout);
                         });
                         services.AddHostedService<TimedHostedService>();
-                    })
-                    .UseAllElasticApm()
-                    .Build();
+                    });
+
+                    if (settings.UseApm) hostBuilder.UseElasticApm();
+
+                    using var host = hostBuilder.Build();
 
                 await host.RunAsync();            
             }

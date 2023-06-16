@@ -1,0 +1,116 @@
+name: Build-Helm
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Build-Docker]
+    types: [completed]    
+  push:
+    branches: [master]
+    paths: ['helm/**']      
+  pull_request:
+    branches: [master]
+    paths: ['helm/**']
+
+env:
+  REGISTRY: ghcr.io/${{ github.repository_owner }}
+  GHCR_USERNAME: ${{ github.actor }}
+  GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  HELM_WORKING_DIRECTORY: helm
+  POLARIS_VERSION: 8.2.1
+  POLARIS_EXIT_SCORE: 90
+
+jobs:
+  Check-Helm:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Helm installation
+      uses: azure/setup-helm@v3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+    - name: Extract chart name
+      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+      run: |
+        echo "CHART_VERSION=$(grep 'version:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_ENV}
+        echo "CHART_NAME=$(grep 'name:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_ENV}
+
+    - name: Print chart name
+      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+      run: |
+        echo Chart name $CHART_NAME
+        echo Chart version $CHART_VERSION
+
+    - name: Lint helm
+      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
+      run: helm lint --strict
+
+    - name: Setup Polaris
+      uses: FairwindsOps/polaris/.github/actions/setup-polaris@master
+      with:
+        version: ${{ env.POLARIS_VERSION }}
+
+    - name: Use Polaris
+      run: polaris audit --helm-chart ${{ env.HELM_WORKING_DIRECTORY }} --helm-values ./${{ env.HELM_WORKING_DIRECTORY }}/values.yaml --only-show-failed-tests true --format=pretty --set-exit-code-on-danger --set-exit-code-below-score ${{ env.POLARIS_EXIT_SCORE }} --config .github/polaris-config.yaml
+
+  Build-and-Push-Helm:
+    needs: Check-Helm
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      packages: write
+
+    steps:      
+      - uses: actions/checkout@v3    
+
+      - name: Helm installation
+        uses: azure/setup-helm@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract chart name
+        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+        run: |
+          echo "CHART_VERSION=$(grep 'version:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_ENV}
+          echo "CHART_NAME=$(grep 'name:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_ENV}
+
+      - name: lowercase GHCR name
+        run: echo "REGISTRY_LOWERCASE=$(echo ${{ env.REGISTRY }} | tr '[:upper:]' '[:lower:]')" >>${GITHUB_ENV}
+
+      - name: Create a test k3d cluster for dry-run install
+        uses: AbsaOSS/k3d-action@v2
+        with:
+          cluster-name: "test-cluster"
+          args: --agents 1
+
+      - name: Lint helm and dry-run install
+        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
+        run: |
+          helm install --dry-run --generate-name ./
+
+      - name: Package helm
+        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
+        run: helm package ./
+
+      - name: Print chart name
+        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+        run: |
+          echo Chart name $CHART_NAME
+          echo Chart version $CHART_VERSION
+          echo GitHub container registry: $REGISTRY_LOWERCASE
+          ls *.tgz
+
+      - name: Test install helm chart
+        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+        run: helm install ./"${CHART_NAME}-${CHART_VERSION}.tgz" --generate-name
+
+      - name: Login to GHCR using Helm
+        run: echo ${{ env.GHCR_PASSWORD }}  | helm registry login ${{ env.REGISTRY }} --username ${{ env.GHCR_USERNAME }} --password-stdin
+
+      - name: Publish chart to GHCR
+        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+        run: helm push "${CHART_NAME}-${CHART_VERSION}.tgz" oci://$REGISTRY_LOWERCASE

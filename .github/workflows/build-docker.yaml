@@ -1,0 +1,121 @@
+name: Build-Docker
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+env:
+  REGISTRY: ghcr.io/${{ github.repository_owner }}
+  IMAGE_NAME: example-net-console
+  DOCKER_WORKING_DIRECTORY: Docker
+  HELM_WORKING_DIRECTORY: helm
+  GHCR_USERNAME: ${{ github.actor }}
+  GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }} 
+  BRANCH: master
+  
+jobs:
+  Build-and-Push-Docker:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      docker_image_version: ${{ steps.docker-image-catch.outputs.DOCKER_VERSION }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}        
+
+    - name: Build and export to Docker for test step
+      uses: docker/build-push-action@v3
+      with:
+        context: ${{ env.DOCKER_WORKING_DIRECTORY }}
+        load: true
+        push: false
+        tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+    - name: Test Docker image
+      uses: addnab/docker-run-action@v3
+      with:
+        image: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+        run: echo "hello world"
+
+    - name: Catch Docker image version
+      id: docker-image-catch
+      run: |
+        echo "DOCKER_VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}">>${GITHUB_OUTPUT}
+        echo "DOCKER_REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}">>${GITHUB_OUTPUT}
+
+    - name: Print Docker image version
+      run: |
+        echo Docker image version: ${{ steps.docker-image-catch.outputs.DOCKER_VERSION }}
+        echo Docker image revision: ${{ steps.docker-image-catch.outputs.DOCKER_REVISION }}
+
+    - name: Login to GitHub container registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ env.GHCR_USERNAME }}
+        password: ${{ env.GHCR_PASSWORD }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v3
+      with:
+        context: ${{ env.DOCKER_WORKING_DIRECTORY }}
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  Update-Chart-Version:
+    needs: Build-and-Push-Docker
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ env.BRANCH }}
+
+    - name: Print Docker image version
+      run: echo "Docker image version ${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}"
+
+    - name: Print Chart.yaml before change
+      run: cat ${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml
+
+    - name: Change Docker image version and chart version in the Chart.yaml
+      uses: mikefarah/yq@v4.28.2
+      with:
+        cmd: yq -i ' 
+              .version = "${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}" | 
+              .appVersion = "${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}" ' 
+              ./${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml
+        
+    - name: Print Chart.yaml after change
+      run: cat ${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml
+
+    - name: Lint helm
+      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+      run: helm lint --strict
+
+    - name: Commit chart version change
+      uses: EndBug/add-and-commit@v9
+      with:
+        message: Change chart version to ${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}
+        author_name: GitHub Actions
+        author_email: action@github.com
+        add: '${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml'

@@ -1,0 +1,53 @@
+# Polaris git repo with config examples https://github.com/FairwindsOps/polaris/tree/master/examples
+# Documentation https://polaris.docs.fairwinds.com/checks/security/
+exemptions:
+  - namespace: metricbeat-common
+    rules:
+      - runAsRootAllowed
+      - notReadOnlyRootFilesystem 
+
+  - namespace: heartbeat-common
+    rules:
+      - notReadOnlyRootFilesystem       
+
+  - namespace: heartbeat-management
+    rules:
+      - notReadOnlyRootFilesystem
+
+checks:
+  # reliability
+  deploymentMissingReplicas: warning
+  priorityClassNotSet: warning
+  tagNotSpecified: danger
+  pullPolicyNotAlways: warning
+  readinessProbeMissing: warning
+  livenessProbeMissing: warning
+  # efficiency
+  cpuRequestsMissing: warning
+  cpuLimitsMissing: warning
+  memoryRequestsMissing: warning
+  memoryLimitsMissing: warning
+  # security
+  automountServiceAccountToken: warning
+  hostIPCSet: danger
+  hostPIDSet: danger
+  linuxHardening: danger
+  # missingNetworkPolicy: warning
+  notReadOnlyRootFilesystem: warning
+  privilegeEscalationAllowed: danger
+  runAsRootAllowed: danger
+  runAsPrivileged: danger
+  dangerousCapabilities: danger
+  insecureCapabilities: warning
+  hostNetworkSet: danger
+  hostPortSet: warning
+  sensitiveContainerEnvVar: danger
+  sensitiveConfigmapContent: danger
+  # clusterrolePodExecAttach: danger
+  rolePodExecAttach: danger
+  # clusterrolebindingPodExecAttach: danger
+  rolebindingClusterRolePodExecAttach: danger
+  rolebindingRolePodExecAttach: danger
+  # clusterrolebindingClusterAdmin: danger
+  rolebindingClusterAdminClusterRole: danger
+  rolebindingClusterAdminRole: danger

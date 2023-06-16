@@ -1,0 +1,5 @@
+{{- if .Values.rollout.enabled -}}
+{{- if eq "canary" (lower .Values.rollout.strategy) -}}
+
+{{- end }}
+{{- end }}

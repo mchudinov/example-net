@@ -1,0 +1,69 @@
+# replicaCount does not affect if autoscaling is enabled. This is by default. 
+replicaCount: 2
+
+image:
+  repository: ghcr.io/wss-ea-cloud-devops/example-net-console
+  pullPolicy: Always
+  tag: ""
+
+imagePullSecrets: [{ name: container-registry-pullsecret }]
+nameOverride: ""
+fullnameOverride: ""
+
+priorityClassName: user-normal
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+securityContext:
+  capabilities:
+    drop: [ ALL ]
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+          
+service:
+  enabled: false
+
+rollout:
+  enabled: false
+  strategy: BlueGreen
+  autoPromotionEnabled: false
+  autoPromotionSeconds: 60
+  ingress:
+    enabled: false
+
+ingress:
+  enabled: false
+
+resources: 
+  limits:
+    cpu: 20m
+    memory: 64Mi
+  requests:
+    cpu: 10m
+    memory: 32Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 100
+  targetCPU: 80
+  targetMemory: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
