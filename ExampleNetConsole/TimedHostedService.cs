@@ -26,14 +26,21 @@ namespace ExampleNetConsole
 
         public Task StartAsync(CancellationToken stoppingToken)
         {
-            _watch.Start();
+            try
+            {
+                _watch.Start();
 
-            _logger.LogInformation("Timed Hosted Service is running.");
-            _logger.LogInformation("TimedSpan = {TimeSpan}", _settings?.TimeSpan);
+                _logger.LogInformation("Timed Hosted Service is running.");
+                _logger.LogInformation("TimedSpan = {TimeSpan}", _settings?.TimeSpan);
 
-            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds((_settings is null) ? DefaultTimeSpanSec : _settings.TimeSpan));
+                _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds((_settings is null) ? DefaultTimeSpanSec : _settings.TimeSpan));
 
-            OutputEnvironmentVariables();
+                OutputEnvironmentVariables();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, ex.Message);
+            }
 
             return Task.CompletedTask;
         }
@@ -43,9 +50,10 @@ namespace ExampleNetConsole
             try 
             {
                 var count = Interlocked.Increment(ref _executionCount);            
-                var lvl = RandomEnumValue<LogLevel>();
-                _logger.Log(lvl, "LogLevel={LogLevel} Count={Count} Uptime={Uptime}s Period={Period}", 
-                    lvl, count, _watch.Elapsed.TotalSeconds, _watch.Elapsed.ToString(@"d\d\,\ hh\:mm\:ss"));        
+                var logLvl = RandomEnumValue<LogLevel>();
+                var data = new Data(_watch.Elapsed);
+                _logger.Log(logLvl, "LogLevel={LogLevel} Count={Count} Uptime={Uptime}s Period={Period} Data={Data}", 
+                    logLvl, count, _watch.Elapsed.TotalSeconds, _watch.Elapsed.ToString(@"d\d\,\ hh\:mm\:ss"), data);     
             }
             catch (Exception ex)
             {
@@ -95,5 +103,20 @@ namespace ExampleNetConsole
             var v = Enum.GetValues(typeof(T));
             return (v is null) ? default : (T)v.GetValue(_random.Next(v.Length));
         }
+    }
+
+    internal class Data
+    {
+        public Data(TimeSpan timeSpan) 
+        {
+            TimeSpan = timeSpan;
+            Value = Math.Cos(2 * Math.PI * timeSpan.TotalSeconds);
+        }
+
+        public TimeSpan TimeSpan { get; private set; }
+
+        public long Ticks { get { return TimeSpan.Ticks; } }
+
+        public double Value { get; private set; }
     }
 }
