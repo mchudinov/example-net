@@ -57,7 +57,7 @@ jobs:
         echo "DOCKER_VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}">>${GITHUB_OUTPUT}
         echo "DOCKER_REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}">>${GITHUB_OUTPUT}
 
-    - name: Print Docker image version
+    - name: Print Docker image info
       run: |
         echo Docker image name: ${{ env.IMAGE_NAME }}
         echo Docker image version: ${{ steps.docker-image-catch.outputs.DOCKER_VERSION }}
