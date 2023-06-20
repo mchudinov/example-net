@@ -1,5 +1,5 @@
 # replicaCount does not affect if autoscaling is enabled. This is by default. 
-replicaCount: 2
+replicaCount: 1
 
 image:
   repository: ghcr.io/wss-ea-cloud-devops/example-net-console
@@ -27,7 +27,7 @@ podSecurityContext:
 securityContext:
   capabilities:
     drop: [ ALL ]
-  readOnlyRootFilesystem: false
+  readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
   runAsNonRoot: true
   seccompProfile:
