@@ -10,7 +10,7 @@ namespace ExampleNetConsole
         private const int DefaultTimeSpanSec = 5;
         private ulong _executionCount = 0;
         private readonly ILogger<TimedHostedService> _logger;
-        private readonly Settings? _settings;
+        private readonly Settings? _settings = new();
         private Timer? _timer = null;
         static readonly Random _random = new();
         static readonly System.Diagnostics.Stopwatch _watch = new();
@@ -47,18 +47,19 @@ namespace ExampleNetConsole
 
         private void DoWork(object? state)
         {
-            try 
+            try
             {
-                var count = Interlocked.Increment(ref _executionCount);            
+                var count = Interlocked.Increment(ref _executionCount);
                 var logLvl = RandomEnumValue<LogLevel>();
-                var data = new Data(_watch.Elapsed);
-                _logger.Log(logLvl, "LogLevel={LogLevel} Count={Count} Uptime={Uptime}s Period={Period} Data={Data}", 
-                    logLvl, count, _watch.Elapsed.TotalSeconds, _watch.Elapsed.ToString(@"d\d\,\ hh\:mm\:ss"), data);     
+                var data = new Data(DateTime.Now.Second); 
+                var period = _watch.Elapsed.ToString(@"d\d\,\ hh\:mm\:ss");
+                _logger.Log(logLvl, "LogLevel={LogLevel} Count={Count} Uptime={Uptime}s Period={Period} Data={@Data}",
+                    logLvl, count, _watch.Elapsed.TotalSeconds, period, data);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, ex.Message);
-            }            
+            }
         }
 
         public Task StopAsync(CancellationToken stoppingToken)
@@ -107,16 +108,17 @@ namespace ExampleNetConsole
 
     internal class Data
     {
-        public Data(TimeSpan timeSpan) 
+        public Data(int seconds)
         {
-            TimeSpan = timeSpan;
-            Value = Math.Cos(2 * Math.PI * timeSpan.TotalSeconds);
+            Seconds = seconds;
+            ValueCos = Math.Round(Math.Cos(seconds)*1000);
+            ValueSin = Math.Round(Math.Sin(seconds)*1000);
         }
 
-        public TimeSpan TimeSpan { get; private set; }
+        public int Seconds { get; private set; }
 
-        public long Ticks { get { return TimeSpan.Ticks; } }
+        public double ValueCos { get; private set; }
 
-        public double Value { get; private set; }
+        public double ValueSin { get; private set; }
     }
 }
