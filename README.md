@@ -1,5 +1,5 @@
-# example-net-console
-Eample console .NET application
+# example-net
+Eample .NET application
 
 ## Build executable
 ### Visual Studio
@@ -25,7 +25,7 @@ When start application from Visual Studion this environment variable is configur
   },
   "ElasticApm": {
     "ServerUrls": "https://elastic-mp-platform-sandbox.apm.westeurope.azure.elastic-cloud.com",
-    "ServiceName": "example-net-console",
+    "ServiceName": "example-net",
     "Environment": "Development",
     "ApiKey": "xxx=="
   },
@@ -56,7 +56,7 @@ When start application from Visual Studion this environment variable is configur
         "Name": "Elasticsearch",
         "Args": {
           "nodeUris": "https://elastic-mp-platform-sandbox.es.westeurope.azure.elastic-cloud.com",
-          "indexFormat": "example-net-console-index-{0:yyyy}",
+          "indexFormat": "example-net-index-{0:yyyy}",
           "connectionGlobalHeaders": "Authorization=Basic xxx="
         }
       }
@@ -78,6 +78,6 @@ When start application from Visual Studion this environment variable is configur
 2. Install Helm Chart
 If the Helm chart is downloaded locally as a *.tgz file
 ```sh
- helm install example-net-console example-net-console-helm-0.1.10.tgz --namespace example-net --create-namespace
+ helm install example-net example-net-helm-0.1.10.tgz --namespace example-net --create-namespace
 ``` 
 

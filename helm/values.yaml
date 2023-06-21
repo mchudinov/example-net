@@ -2,7 +2,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/wss-ea-cloud-devops/example-net-console-docker
+  repository: ghcr.io/wss-ea-cloud-devops/example-net-docker
   pullPolicy: Always
   tag: ""
 

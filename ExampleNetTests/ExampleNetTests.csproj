@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ExampleNetConsole\ExampleNetConsole.csproj" />
+    <ProjectReference Include="..\ExampleNet\ExampleNet.csproj" />
   </ItemGroup>
 
 </Project>

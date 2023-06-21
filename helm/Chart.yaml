@@ -1,6 +1,6 @@
 apiVersion: v2
-name: example-net-console-helm
-description: A Helm chart for example-net-console application
+name: example-net-helm
+description: A Helm chart for example-net application
 type: application
 # This is the Helm chart version
 version: 0.1.12

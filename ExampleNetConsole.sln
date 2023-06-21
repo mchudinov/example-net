@@ -5,7 +5,7 @@ VisualStudioVersion = 17.5.33530.505
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExampleNetConsole", "ExampleNetConsole\ExampleNetConsole.csproj", "{DFD3277E-0527-4299-8701-CBFB9ADD1A2D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExampleNetConsoleTests", "ExampleNetConsoleTests\ExampleNetConsoleTests.csproj", "{4C5B45A8-EFB3-41D7-A0D3-679E3AA9DA10}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExampleNetConsoleTests", "ExampleNetConsoleTests\ExampleNetConsoleTests.csproj", "{4C5B45A8-EFB3-41D7-A0D3-679E3AA9DA10}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

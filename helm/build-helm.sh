@@ -1,11 +1,11 @@
-# kubectl create namespace example-net-console
-# helm install example-net-console --namespace example-net-console ./ 
-# helm uninstall example-net-console --namespace example-net-console
+# kubectl create namespace example-net
+# helm install example-net --namespace example-net ./ 
+# helm uninstall example-net --namespace example-net
 
 # helm repo update
 
 helm lint --strict
 helm install --dry-run --debug --generate-name ./
 helm package ./
-mv example-net-console* ./chart
+mv example-net* ./chart
 helm repo index ./chart
