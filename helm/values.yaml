@@ -47,13 +47,13 @@ rollout:
 ingress:
   enabled: false
 
-#resources: 
-#  limits:
-#    cpu: 20m
-#    memory: 128Mi
-#  requests:
-#    cpu: 10m
-#    memory: 64Mi
+resources: 
+  limits:
+    cpu: 200m
+    memory: 512Mi
+  requests:
+    cpu: 50m
+    memory: 256Mi
 
 autoscaling:
   enabled: true
