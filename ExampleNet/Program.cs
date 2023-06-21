@@ -8,7 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Hosting;
 using Elastic.Apm.Extensions.Hosting;
 
-namespace ExampleNetConsole
+namespace ExampleNet
 {
     internal sealed class Program
     {
@@ -55,11 +55,21 @@ namespace ExampleNetConsole
                             options.ShutdownTimeout = TimeSpan.FromSeconds((settings is null) ? DefaultTimeOutSec : settings.ShutdownTimeout);
                         });
                         services.AddHostedService<TimedHostedService>();
+                        services.AddHealthChecks();
+                    })
+                    .ConfigureWebHostDefaults(webBuilder =>
+                    {
+                        //webBuilder.MapHealthChecks("/healthz");
+                        //webBuilder.Configure(app =>
+                        //{
+                        //    //app.MapHealthChecks("/healthz");
+                        //});
                     });
 
-                    if ((settings is not null) && settings.UseApm) hostBuilder.UseElasticApm();
+                if ((settings is not null) && settings.UseApm) hostBuilder.UseElasticApm();
 
-                    using var host = hostBuilder.Build();
+                using var host = hostBuilder.Build();
+                //host.MapHealthChecks("/werw");
 
                 await host.RunAsync();            
             }

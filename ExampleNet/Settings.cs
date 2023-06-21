@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace ExampleNetConsole
+namespace ExampleNet
 {
     public sealed class Settings
     {

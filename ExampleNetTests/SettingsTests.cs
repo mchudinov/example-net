@@ -1,6 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace ExampleNetConsole.Tests
+namespace ExampleNet.Tests
 {
     [TestClass()]
     public class SettingsTests
