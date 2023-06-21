@@ -68,3 +68,16 @@ When start application from Visual Studion this environment variable is configur
 ### Docker
 ### Kubernetes
 
+## Run
+### Executable
+### Docker
+### Docker Compose
+### Kubernetes
+1. Download Helm chart
+
+2. Install Helm Chart
+If the Helm chart is downloaded locally as a *.tgz file
+```sh
+ helm install example-net-console example-net-console-helm-0.1.10.tgz --namespace example-net --create-namespace
+``` 
+
