@@ -5,6 +5,7 @@
 
 appsettings.local.json
 helm/chart/*
+*dump
 
 # User-specific files
 *.rsuser
