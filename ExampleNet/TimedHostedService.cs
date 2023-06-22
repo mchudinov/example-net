@@ -14,14 +14,16 @@ namespace ExampleNet
         private Timer? _timer = null;
         static readonly Random _random = new();
         static readonly System.Diagnostics.Stopwatch _watch = new();
+        private readonly StartupReadyCheck _readyCheck;
 
-        public TimedHostedService(ILogger<TimedHostedService> logger, IConfiguration configuration)
+        public TimedHostedService(ILogger<TimedHostedService> logger, IConfiguration configuration, StartupReadyCheck readyCheck)
         {
             _settings = configuration
                 .GetRequiredSection("Settings")
                 .Get<Settings>();
 
             _logger = logger;
+            _readyCheck = readyCheck;
         }
 
         public Task StartAsync(CancellationToken stoppingToken)
@@ -36,6 +38,8 @@ namespace ExampleNet
                 _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds((_settings is null) ? DefaultTimeSpanSec : _settings.TimeSpan));
 
                 OutputEnvironmentVariables();
+
+                _readyCheck.StartupCompleted = true;
             }
             catch (Exception ex)
             {

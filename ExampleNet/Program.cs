@@ -1,11 +1,6 @@
 ﻿using Serilog;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Serilog.Events;
-using Microsoft.Extensions.Logging;
 using Serilog.Debugging;
-using Microsoft.Extensions.Configuration;
-using Microsoft.AspNetCore.Hosting;
 using Elastic.Apm.Extensions.Hosting;
 
 namespace ExampleNet
@@ -34,44 +29,45 @@ namespace ExampleNet
                 var settings = configuration.GetRequiredSection("Settings").Get<Settings>();               
 
                 IHostBuilder hostBuilder = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
-                    .ConfigureHostConfiguration(builder => 
+                    .ConfigureHostConfiguration(configBuilder => 
                     {
-                        builder.AddConfiguration(configuration);
+                        configBuilder.AddConfiguration(configuration);
                     })
-                    .ConfigureLogging(logging =>
+                    .ConfigureLogging(loggingBuilder =>
                     {
-                        logging.ClearProviders();
+                        loggingBuilder.ClearProviders();
                         Serilog.Log.Logger = new LoggerConfiguration()
                             .ReadFrom.Configuration(configuration)
                             .CreateLogger();
-                        logging.AddSerilog();
+                        loggingBuilder.AddSerilog();
                     })
                     .ConfigureServices(services =>
                     { 
-                        services.AddSingleton<Settings>((settings is null) ? new Settings() : settings);
+                        services.AddSingleton<Settings>((settings is null) ? new Settings() : settings);                        
                         services.Configure<HostOptions>(options =>
                         {
                             options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost;
                             options.ShutdownTimeout = TimeSpan.FromSeconds((settings is null) ? DefaultTimeOutSec : settings.ShutdownTimeout);
                         });
                         services.AddHostedService<TimedHostedService>();
-                        services.AddHealthChecks();
+                        services.AddSingleton<StartupReadyCheck>();
+                        services.AddHealthChecks().AddCheck<StartupReadyCheck>("StartupReadyCheck");
                     })
                     .ConfigureWebHostDefaults(webBuilder =>
                     {
-                        //webBuilder.MapHealthChecks("/healthz");
-                        //webBuilder.Configure(app =>
-                        //{
-                        //    //app.MapHealthChecks("/healthz");
-                        //});
+                        webBuilder.Configure(app =>
+                        {
+                            app.UseHealthChecks("/healthz");
+                            app.UseHealthChecks("/readyz");
+                            app.UseHealthChecks("/livez");
+                        });
                     });
 
                 if ((settings is not null) && settings.UseApm) hostBuilder.UseElasticApm();
 
                 using var host = hostBuilder.Build();
-                //host.MapHealthChecks("/werw");
 
-                await host.RunAsync();            
+                await host.RunAsync();
             }
             catch (Exception ex)
             {
