@@ -2,6 +2,7 @@
 using Serilog.Events;
 using Serilog.Debugging;
 using Elastic.Apm.Extensions.Hosting;
+using System.Collections;
 
 namespace ExampleNet
 {
@@ -21,6 +22,10 @@ namespace ExampleNet
 
             try
             {
+                Serilog.Log.Logger.Information("Example .NET application is running");
+                Serilog.Log.Logger.Information($".NET Version: {Environment.Version.ToString()}");
+                OutputEnvironmentVariables();
+
                 var enviroment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
                 var configuration = new ConfigurationBuilder()
                     .AddJsonFile("appsettings.json")
@@ -85,6 +90,17 @@ namespace ExampleNet
             {
                 Serilog.Log.Information("Shut down complete");
                 Serilog.Log.CloseAndFlush();
+            }
+        }
+
+        private static void OutputEnvironmentVariables()
+        {
+            var envVars = Environment.GetEnvironmentVariables().Cast<DictionaryEntry>();
+            envVars = envVars.OrderBy(x => (string)x.Key);
+
+            foreach (var e in envVars)
+            {
+                Serilog.Log.Information("{variabel}:{value}", e.Key, e.Value);
             }
         }
     }

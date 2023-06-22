@@ -37,8 +37,6 @@ namespace ExampleNet
 
                 _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds((_settings is null) ? DefaultTimeSpanSec : _settings.TimeSpan));
 
-                OutputEnvironmentVariables();
-
                 _readyCheck.StartupCompleted = true;
             }
             catch (Exception ex)
@@ -90,16 +88,6 @@ namespace ExampleNet
                     _timer.Dispose();
                     _timer = null;
                 }
-            }
-        }
-
-        private void OutputEnvironmentVariables()
-        {
-            var envVars = Environment.GetEnvironmentVariables().Cast<DictionaryEntry>();
-            envVars = envVars.OrderBy(x => (string)x.Key);
-            foreach (var e in envVars)
-            {
-                _logger.LogInformation("{variabel}:{value}", e.Key, e.Value);
             }
         }
 

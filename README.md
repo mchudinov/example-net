@@ -27,7 +27,9 @@ When start application from Visual Studion this environment variable is configur
     "ServerUrls": "https://elastic-mp-platform-sandbox.apm.westeurope.azure.elastic-cloud.com",
     "ServiceName": "example-net",
     "Environment": "Development",
-    "ApiKey": "xxx=="
+    "ApiKey": "xxx==",
+    "MetricsInterval": "2m",
+    "Enabled": true
   },
   "Serilog": {
     "MinimumLevel": "Information",
