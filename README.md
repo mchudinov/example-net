@@ -74,7 +74,7 @@ When start application from Visual Studion this environment variable is configur
 1. Pull the Docker image
 2. 
 ```sh
-docker run example-net-docker -p 50624:8080
+docker run example-net-docker -p 5000:8080 --env DOTNET_ENVIRONMENT=local
 ``` 
 ### Docker Compose
 ### Kubernetes

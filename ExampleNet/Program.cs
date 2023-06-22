@@ -57,6 +57,14 @@ namespace ExampleNet
                     {
                         webBuilder.Configure(app =>
                         {
+                            app.UseRouting();
+                            app.UseEndpoints(endpoints =>
+                            {
+                                endpoints.MapGet("/", async context =>
+                                {
+                                    await context.Response.WriteAsync("Ok");
+                                });
+                            });
                             app.UseHealthChecks("/healthz");
                             app.UseHealthChecks("/readyz");
                             app.UseHealthChecks("/livez");
