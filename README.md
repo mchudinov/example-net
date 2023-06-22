@@ -11,6 +11,15 @@ Eample .NET application
 ### GitHub actions
 
 ## Configuration
+The following logging options are supported:
+- Console
+- Debug window in Visual Studio
+- Seq
+- Syslog TCP/UDP
+- Elasticsearch
+ 
+Elastic APM module can be switched on and off with *ElasticApm:Enabled* option.
+
 ### Local configuration
 1. Set local environment variable **DOTNET_ENVIRONMENT=local**
 When start application from Visual Studion this environment variable is configured in **launchSettings.json** file.
@@ -67,6 +76,52 @@ When start application from Visual Studion this environment variable is configur
 }
 ```
 ### Docker
+Local container configuration
+1. Set local environment variable **DOTNET_ENVIRONMENT=localcontainer**
+When start application from Visual Studion this environment variable is configured in **launchSettings.json** file.
+
+2. Configure settings in **appsettings.localcontainer.json**
+```json
+{
+  "Settings": {
+    "TimeSpan": 2,
+    "ShutdownTimeout": 10
+  },
+  "ElasticApm": {
+    "ServerUrls": "https://elastic-mp-platform-sandbox.apm.westeurope.azure.elastic-cloud.com",
+    "ServiceName": "example-net",
+    "Environment": "Development",
+    "ApiKey": "xxx==",
+    "MetricsInterval": "2m",
+    "Enabled": true
+  },
+  "Serilog": {
+    "MinimumLevel": "Information",
+    "WriteTo": [
+      {
+        "Name": "Console",
+        "Formatter": "Serilog.Formatting.Compact.CompactJsonFormatter, Serilog.Formatting.Compact"
+      },
+      {
+        "Name": "Elasticsearch",
+        "Args": {
+          "nodeUris": "https://elastic-mp-platform-sandbox.es.westeurope.azure.elastic-cloud.com",
+          "indexFormat": "example-net-index-{0:yyyy}",
+          "connectionGlobalHeaders": "Authorization=Basic xxx="
+        }
+      }
+    ],
+    "Enrich": [ "FromLogContext", "WithMachineName", "WithElasticApmCorrelationInfo" ]
+  },
+  "Kestrel": {
+    "EndPoints": {
+      "Http": {
+        "Url": "http://localhost:50001"
+      }
+    }
+  }
+}
+```
 ### Kubernetes
 
 ## Run
@@ -78,6 +133,10 @@ When start application from Visual Studion this environment variable is configur
 docker run --publish 50001:8080 --env DOTNET_ENVIRONMENT=localcontainer example-net-docker
 ``` 
 ### Docker Compose
+Run the following command from project root directory.
+```sh
+docker compose up
+``` 
 ### Kubernetes
 1. Download the Helm chart
 

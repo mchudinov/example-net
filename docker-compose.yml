@@ -1,6 +1,8 @@
 version: "3.9"
 services:
-  dotnet:
-    image: "example-net:latest"
+  example-net:
+    image: "example-net-docker:latest"
+    ports:
+      - "50001:8080"
     environment:
-      - DOTNET_ENVIRONMENT=local
+      - DOTNET_ENVIRONMENT=localcontainer
