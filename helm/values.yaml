@@ -35,6 +35,8 @@ securityContext:
           
 service:
   enabled: true
+  type: ClusterIP
+  port: 50001
 
 rollout:
   enabled: false

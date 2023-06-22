@@ -142,10 +142,14 @@ docker compose up
 Kubernetes cluster must have priority class *user-normal* defined.
 Kubernetes cluster must have *container-registry-pullsecret* pull secret for GHCR defined in the target namespace *example-net*.
 
-1. Download the Helm chart
+1. Install the remote Helm Chart
+Login to GHCR previosuly.
+```sh
+helm install example-net oci://ghcr.io/wss-ea-cloud-devops/example-net-helm --version 0.1.10 --namespace example-net --create-namespace
+``` 
 
-2. Install the Helm Chart
-If the Helm chart is downloaded locally as a *.tgz file
+2. Install the local Helm Chart
+If the Helm chart is downloaded or build locally as a *.tgz* file
 ```sh
 helm install example-net example-net-helm-0.1.10.tgz --namespace example-net --create-namespace
 ``` 
