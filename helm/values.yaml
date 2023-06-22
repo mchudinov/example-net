@@ -34,7 +34,7 @@ securityContext:
     type: RuntimeDefault
           
 service:
-  enabled: false
+  enabled: true
 
 rollout:
   enabled: false
@@ -56,8 +56,8 @@ resources:
     memory: 256Mi
 
 autoscaling:
-  enabled: true
-  minReplicas: 2
+  enabled: false
+  minReplicas: 1
   maxReplicas: 100
   targetCPU: 80
   targetMemory: 80

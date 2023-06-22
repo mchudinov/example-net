@@ -128,7 +128,7 @@ When start application from Visual Studion this environment variable is configur
 ### Executable
 ### Docker
 1. Pull the Docker image
-2. 
+2. Run container
 ```sh
 docker run --publish 50001:8080 --env DOTNET_ENVIRONMENT=localcontainer example-net-docker
 ``` 
@@ -138,9 +138,13 @@ Run the following command from project root directory.
 docker compose up
 ``` 
 ### Kubernetes
+0. Prerequisites
+Kubernetes cluster must have priority class *user-normal* defined.
+Kubernetes cluster must have *container-registry-pullsecret* pull secret for GHCR defined in the target namespace *example-net*.
+
 1. Download the Helm chart
 
-2. Install Helm Chart
+2. Install the Helm Chart
 If the Helm chart is downloaded locally as a *.tgz file
 ```sh
 helm install example-net example-net-helm-0.1.10.tgz --namespace example-net --create-namespace

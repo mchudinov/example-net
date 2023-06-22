@@ -1,7 +1,8 @@
 version: "3.9"
 services:
   example-net:
-    image: "example-net-docker:latest"
+    build:      
+      context: .
     ports:
       - "50001:8080"
     environment:
