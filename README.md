@@ -74,7 +74,7 @@ When start application from Visual Studion this environment variable is configur
 1. Pull the Docker image
 2. 
 ```sh
- docker run example-net-docker -p 50624:8080
+docker run example-net-docker -p 50624:8080
 ``` 
 ### Docker Compose
 ### Kubernetes
@@ -83,6 +83,6 @@ When start application from Visual Studion this environment variable is configur
 2. Install Helm Chart
 If the Helm chart is downloaded locally as a *.tgz file
 ```sh
- helm install example-net example-net-helm-0.1.10.tgz --namespace example-net --create-namespace
+helm install example-net example-net-helm-0.1.10.tgz --namespace example-net --create-namespace
 ``` 
 
