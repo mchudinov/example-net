@@ -20,13 +20,12 @@ When start application from Visual Studion this environment variable is configur
 {
   "Settings": {
     "TimeSpan": 2,
-    "ShutdownTimeout": 10,
-    "UseApm": true
+    "ShutdownTimeout": 10
   },
   "ElasticApm": {
     "ServerUrls": "https://elastic-mp-platform-sandbox.apm.westeurope.azure.elastic-cloud.com",
     "ServiceName": "example-net",
-    "Environment": "Development",
+    "Environment": "Development/SOL/VFY/PROD",
     "ApiKey": "xxx==",
     "MetricsInterval": "2m",
     "Enabled": true
@@ -76,7 +75,7 @@ When start application from Visual Studion this environment variable is configur
 1. Pull the Docker image
 2. 
 ```sh
-docker run example-net-docker -p 5000:8080 --env DOTNET_ENVIRONMENT=local
+docker run --publish 50001:8080 --env DOTNET_ENVIRONMENT=localcontainer example-net-docker
 ``` 
 ### Docker Compose
 ### Kubernetes
@@ -88,3 +87,10 @@ If the Helm chart is downloaded locally as a *.tgz file
 helm install example-net example-net-helm-0.1.10.tgz --namespace example-net --create-namespace
 ``` 
 
+## Test
+Application starts listening at HTTP port 50001 by default.
+Applications responds with HTTP status code *200 OK* at the following endpoints:
+- /
+- /healthz
+- /livez
+- /readyz

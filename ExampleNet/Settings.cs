@@ -6,9 +6,6 @@ namespace ExampleNet
     {
         private double _timeSpan;
         private double _shutdownTimeout;
-
-        public required bool UseApm { get; set; }
-
         public required double TimeSpan
         {
             get { return _timeSpan; }
@@ -26,7 +23,6 @@ namespace ExampleNet
         {
             TimeSpan = 1;
             ShutdownTimeout = 1;
-            UseApm = false;
         }
     }
 }

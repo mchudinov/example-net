@@ -60,23 +60,23 @@ namespace ExampleNet
                     })
                     .ConfigureWebHostDefaults(webBuilder =>
                     {
-                        webBuilder.Configure(app =>
+                        webBuilder.Configure(appBuilder =>
                         {
-                            app.UseRouting();
-                            app.UseEndpoints(endpoints =>
+                            appBuilder.UseRouting();
+                            appBuilder.UseEndpoints(endpoints =>
                             {
                                 endpoints.MapGet("/", async context =>
                                 {
                                     await context.Response.WriteAsync("Ok");
                                 });
                             });
-                            app.UseHealthChecks("/healthz");
-                            app.UseHealthChecks("/readyz");
-                            app.UseHealthChecks("/livez");
+                            appBuilder.UseHealthChecks("/healthz");
+                            appBuilder.UseHealthChecks("/readyz");
+                            appBuilder.UseHealthChecks("/livez");
                         });
                     });
 
-                if ((settings is not null) && settings.UseApm) hostBuilder.UseElasticApm();
+                hostBuilder.UseElasticApm();
 
                 using var host = hostBuilder.Build();
 
