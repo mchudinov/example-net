@@ -50,7 +50,29 @@ spec:
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-
+          env:
+            - name: Settings__TimeSpan
+              value: "{{ .Values.settings.timeSpan }}"
+            {{ if .Values.elastic.apm.enabled }}
+            - name: ElasticApm__Enabled
+              value: "{{ .Values.elastic.apm.enabled }}"
+            {{- end }}
+            {{ if .Values.elastic.log.enabled }}  
+            - name: Serilog__WriteTo__1__restrictedToMinimumLevel
+              value: {{ .Values.elastic.log.level }}
+            {{- end }}
+            {{ if .Values.keyvault.enabled }}
+            - name: ElasticApm__ApiKey
+              valueFrom:
+                secretKeyRef:
+                  name: elasticapm-apikey
+                  key: elasticapm-apikey
+            - name: Serilog__WriteTo__1__Args__ConnectionGlobalHeaders
+              valueFrom:
+                secretKeyRef:
+                  name: serilog-writeto-1-args-connectionglobalheaders
+                  key: serilog-writeto-1-args-connectionglobalheaders
+            {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

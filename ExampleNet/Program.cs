@@ -52,7 +52,7 @@ namespace ExampleNet
                         services.Configure<HostOptions>(options =>
                         {
                             options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.StopHost;
-                            options.ShutdownTimeout = TimeSpan.FromSeconds((settings is null) ? DefaultTimeOutSec : settings.ShutdownTimeout);
+                            options.ShutdownTimeout = TimeSpan.FromSeconds(DefaultTimeOutSec);
                         });
                         services.AddHostedService<TimedHostedService>();
                         services.AddSingleton<StartupReadyCheck>();

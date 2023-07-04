@@ -10,6 +10,29 @@ imagePullSecrets: [{ name: container-registry-pullsecret }]
 nameOverride: ""
 fullnameOverride: ""
 
+settings:
+  timeSpan: 5
+  logLevel: Information
+
+elastic:
+  log:
+    enabled: false
+    level: 4 # 1=Error, 2=Warning, 3=Information, 4=Debug
+    nodeUris: "https://example.com"
+    indexFormat: "example-net-index-{0:yyyy}"
+  apm:
+    enabled: false
+    serverUrls: "https://example.com"
+    serviceName: "example-net"
+    environment: prod
+    metricsInterval: 2m
+    
+keyvault:
+  enabled: false
+  name: kv-mp-example-net-sol
+  userAssignedIdentityID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  tenantId: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
 priorityClassName: user-normal
 
 serviceAccount:
