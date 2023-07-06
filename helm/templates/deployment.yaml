@@ -59,7 +59,7 @@ spec:
             - name: ElasticApm__Enabled
               value: {{ .Values.elastic.apm.enabled }}
             - name: ElasticApm__ServerUrls
-              value: {{ .Values.elastic.apm.serverUrls }}
+              value: "{{ .Values.elastic.apm.serverUrls }}"
             - name: ElasticApm__ServiceName
               value: {{ .Values.elastic.apm.serviceName }}
             - name: ElasticApm__Environment
@@ -75,9 +75,9 @@ spec:
             - name: Serilog__WriteTo__1__Name
               value: Elasticsearch
             - name: Serilog__WriteTo__1__Args__nodeUris
-              value: {{ .Values.elastic.log.nodeUris }}
+              value: "{{ .Values.elastic.log.nodeUris }}"
             - name: Serilog__WriteTo__1__Args__indexFormat
-              value: {{ .Values.elastic.log.indexFormat }}
+              value: "{{ .Values.elastic.log.indexFormat }}"
               {{ if .Values.elastic.log.connectionGlobalHeaders }}
             - name: Serilog__WriteTo__1__Args__connectionGlobalHeaders
               value: "{{ .Values.elastic.log.connectionGlobalHeaders }}"
