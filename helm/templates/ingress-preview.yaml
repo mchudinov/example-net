@@ -1,7 +1,7 @@
 {{- if .Values.rollout.enabled -}}
 {{- if eq "bluegreen" (lower .Values.rollout.strategy) -}}
 {{- if .Values.rollout.ingress.enabled -}}
-{{- $fullName := include "app.fullname" . -}}
+{{- $fullName := include "app.name" . -}}
 {{- $svcPort := .Values.service.port -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress

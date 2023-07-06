@@ -3,7 +3,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
-  name: {{ include "app.fullname" . }}
+  name: {{ include "app.name" . }}
   labels:
     {{- include "app.labels" . | nindent 4 }}
 spec:
@@ -15,8 +15,8 @@ spec:
       {{- include "app.selectorLabels" . | nindent 6 }}
   strategy:
     blueGreen:
-      activeService: {{ include "app.fullname" . }}
-      previewService: {{ include "app.fullname" . }}-preview
+      activeService: {{ include "app.name" . }}
+      previewService: {{ include "app.name" . }}-preview
       autoPromotionEnabled: {{ .Values.rollout.autoPromotionEnabled }}
       autoPromotionSeconds: {{ .Values.rollout.autoPromotionSeconds }} 
   template:

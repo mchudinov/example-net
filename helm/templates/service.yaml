@@ -2,7 +2,7 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: {{ include "app.fullname" . }}
+  name: {{ include "app.name" . }}
   labels:
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     {{- include "app.labels" . | nindent 4 }}
