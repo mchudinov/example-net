@@ -53,25 +53,35 @@ spec:
           env:
             - name: Settings__TimeSpan
               value: "{{ .Values.settings.timeSpan }}"
+            - name: Serilog__MinimumLevel
+              value: "{{ .Values.settings.logLevel }}"
             {{ if .Values.elastic.apm.enabled }}
             - name: ElasticApm__Enabled
               value: "{{ .Values.elastic.apm.enabled }}"
             {{- end }}
             {{ if .Values.elastic.log.enabled }}  
-            - name: Serilog__WriteTo__1__restrictedToMinimumLevel
-              value: {{ .Values.elastic.log.level }}
+            - name: Serilog__WriteTo__1__Name
+              value: Elasticsearch
+            - name: Serilog__WriteTo__1__Args__nodeUris
+              value: {{ .Values.elastic.log.nodeUris }}
+            - name: Serilog__WriteTo__1__Args__indexFormat
+              value: {{ .Values.elastic.log.indexFormat }}
             {{- end }}
             {{ if .Values.keyvault.enabled }}
+              {{ if .Values.elastic.apm.enabled }}
             - name: ElasticApm__ApiKey
               valueFrom:
                 secretKeyRef:
                   name: elasticapm-apikey
                   key: elasticapm-apikey
+              {{- end }}
+              {{ if .Values.elastic.log.enabled }}
             - name: Serilog__WriteTo__1__Args__ConnectionGlobalHeaders
               valueFrom:
                 secretKeyRef:
                   name: serilog-writeto-1-args-connectionglobalheaders
                   key: serilog-writeto-1-args-connectionglobalheaders
+              {{- end }}
             {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

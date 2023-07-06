@@ -17,7 +17,6 @@ settings:
 elastic:
   log:
     enabled: false
-    level: 4 # 1=Error, 2=Warning, 3=Information, 4=Debug
     nodeUris: "https://example.com"
     indexFormat: "example-net-index-{0:yyyy}"
   apm:
