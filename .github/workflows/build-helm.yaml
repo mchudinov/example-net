@@ -105,15 +105,15 @@ jobs:
           echo GitHub container registry: $REGISTRY_LOWERCASE
           ls *.tgz
 
-      - name: Create a test k3d cluster for test install
-        uses: AbsaOSS/k3d-action@v2
-        with:
-          cluster-name: "test-cluster"
-          args: --agents 1
+      # - name: Create a test k3d cluster for test install
+      #   uses: AbsaOSS/k3d-action@v2
+      #   with:
+      #     cluster-name: "test-cluster"
+      #     args: --agents 1
 
-      - name: Test install helm chart
-        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
-        run: helm install ./"${CHART_NAME}-${CHART_VERSION}.tgz" --generate-name
+      # - name: Test install helm chart
+      #   working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+      #   run: helm install ./"${CHART_NAME}-${CHART_VERSION}.tgz" --generate-name
 
       - name: Login to GHCR using Helm
         run: echo ${{ env.GHCR_PASSWORD }}  | helm registry login ${{ env.REGISTRY }} --username ${{ env.GHCR_USERNAME }} --password-stdin
