@@ -80,7 +80,7 @@ spec:
               value: {{ .Values.elastic.log.indexFormat }}
               {{ if .Values.elastic.log.connectionGlobalHeaders }}
             - name: Serilog__WriteTo__1__Args__connectionGlobalHeaders
-              value: {{ .Values.elastic.log.connectionGlobalHeaders }}
+              value: "{{ .Values.elastic.log.connectionGlobalHeaders }}"
               {{- end }}
             {{- end }}
             {{ if .Values.keyvault.enabled }}
