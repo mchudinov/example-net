@@ -47,7 +47,19 @@ jobs:
     - name: Lint helm
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
       run: helm lint --strict
+      
+    - name: Create a test k3d cluster for dry-run install
+      uses: AbsaOSS/k3d-action@v2
+      with:
+        cluster-name: "test-cluster"
+        args: --agents 1
+  
+    - name: Dry-run install
+      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
+      run: |
+        helm install --dry-run --generate-name ./      
 
+    # Optional steps check Helm chart with Fairwinds Polaris tool
     - name: Setup Polaris
       uses: FairwindsOps/polaris/.github/actions/setup-polaris@master
       with:
@@ -81,17 +93,6 @@ jobs:
       - name: lowercase GHCR name
         run: echo "REGISTRY_LOWERCASE=$(echo ${{ env.REGISTRY }} | tr '[:upper:]' '[:lower:]')" >>${GITHUB_ENV}
 
-      - name: Create a test k3d cluster for dry-run install
-        uses: AbsaOSS/k3d-action@v2
-        with:
-          cluster-name: "test-cluster"
-          args: --agents 1
-
-      - name: Lint helm and dry-run install
-        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
-        run: |
-          helm install --dry-run --generate-name ./
-
       - name: Package helm
         working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
         run: helm package ./
@@ -103,6 +104,12 @@ jobs:
           echo Chart version $CHART_VERSION
           echo GitHub container registry: $REGISTRY_LOWERCASE
           ls *.tgz
+
+      - name: Create a test k3d cluster for test install
+        uses: AbsaOSS/k3d-action@v2
+        with:
+          cluster-name: "test-cluster"
+          args: --agents 1
 
       - name: Test install helm chart
         working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
