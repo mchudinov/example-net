@@ -2,30 +2,32 @@
 
 Eample .NET application
 
-- [Build solution](#build-solution)
-  - [Visual Studio](#visual-studio)
-  - [Command line](#command-line)
-- [Build container](#build-container)
-  - [Using CLI](#using-cli)
-    - [Docker image](#docker-image)
-    - [Helm chart](#helm-chart)
-  - [GitHub actions](#github-actions)
-- [Configuration](#configuration)
-  - [Logging](#logging)
-  - [Elastic APM](#elastic-apm)
-  - [Configuration examples](#configuration-examples)
-    - [Local configuration](#local-configuration)
-    - [Docker config](#docker-config)
-    - [Kubernetes config](#kubernetes-config)
-- [Run the application](#run-the-application)
-  - [Executable](#executable)
-  - [Docker](#docker)
-  - [Docker Compose](#docker-compose)
-  - [Kubernetes](#kubernetes)
-    - [Prerequisites](#prerequisites)
-    - [Install the remote Helm Chart](#install-the-remote-helm-chart)
-    - [Install the local Helm Chart](#install-the-local-helm-chart)
-- [Test application](#test-application)
+- [example-net](#example-net)
+  - [Build solution](#build-solution)
+    - [Visual Studio](#visual-studio)
+    - [Command line](#command-line)
+  - [Build container](#build-container)
+    - [Using CLI](#using-cli)
+      - [Docker image](#docker-image)
+      - [Helm chart](#helm-chart)
+    - [GitHub actions](#github-actions)
+  - [Configuration](#configuration)
+    - [Logging](#logging)
+    - [Elastic APM](#elastic-apm)
+    - [Configuration examples](#configuration-examples)
+      - [Local configuration](#local-configuration)
+      - [Docker config](#docker-config)
+      - [Kubernetes config](#kubernetes-config)
+  - [Run the application](#run-the-application)
+    - [Executable](#executable)
+    - [Docker](#docker)
+    - [Docker Compose](#docker-compose)
+    - [Kubernetes](#kubernetes)
+      - [Prerequisites](#prerequisites)
+      - [Custom values.yaml example](#custom-valuesyaml-example)
+      - [Install the remote Helm Chart](#install-the-remote-helm-chart)
+      - [Install the local Helm Chart](#install-the-local-helm-chart)
+  - [Test application](#test-application)
 
 ## Build solution
 
@@ -35,7 +37,7 @@ Just build the solution in Visual Studio.
 
 ### Command line
 
-Run the following command from the solution directory:
+Run the following command from the solution's directory:
 
 ```sh
 dotnet build --configuration Release
@@ -49,16 +51,18 @@ The build result as an executable is available at ```<solution root>/ExampleNet/
 
 #### Docker image
 
+Run the following command from the solution's directory:
+
 ```sh
 docker build -t example-net-docker .
 ```
 
 #### Helm chart
 
+Run the following commands from the *./helm* directory:
+
 ```sh
-cd helm
 helm lint --strict
-helm install --dry-run --debug --generate-name ./
 helm package ./
 ```
 
@@ -142,7 +146,7 @@ When start application from Visual Studion this environment variable is configur
         "Args": {
           "nodeUris": "https://elastic-mp-platform-sandbox.es.westeurope.azure.elastic-cloud.com",
           "indexFormat": "example-net-index-{0:yyyy}",
-          "connectionGlobalHeaders": "Authorization=Basic xxx="
+          "connectionGlobalHeaders": "Authorization=Basic login:passwordbase64="
         }
       }
     ],
@@ -234,25 +238,64 @@ docker compose up
 - Kubernetes cluster must have priority class *user-normal* defined.
 - Kubernetes cluster must have *container-registry-pullsecret* pull secret for the GHCR defined in the target namespace *example-net*.
 
+All the WSS DevOps platform Kubernetes clusters satisfied all requirements.
+
+Priority classes are defined here ```k8s-argo-mgmt-cl1-sol/platform/common/1/platform.yaml```
+
+Ask Cloud&DevOps team *container-registry-pullsecret* pull secret for the GHCR.
+
+Application's configuration can be done using the custom *--values values.yaml*
+
+#### Custom values.yaml example
+
+```yaml
+settings:
+  timeSpan: 5
+  logLevel: Information
+
+elastic:
+  log:
+    enabled: true
+    nodeUris: "https://elastic-mp-platform-sandbox.es.westeurope.azure.elastic-cloud.com"
+    indexFormat: "example-net-index-{0:yyyy}"
+    connectionGlobalHeaders: "Authorization=Basic login:passwordbase64="
+  apm:
+    enabled: true
+    serverUrls: "https://elastic-mp-platform-sandbox.apm.westeurope.azure.elastic-cloud.com"
+    serviceName: "example-net"
+    environment: prod
+    metricsInterval: 2m
+    apiKey: "dummy=="
+    
+keyvault:
+  enabled: false
+  name: kv-mp-example-net-sol
+  userAssignedIdentityID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  tenantId: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+```  
+
+**NB!** Values from a Key Vault has preference over values from *values.yaml* config file.
+
 #### Install the remote Helm Chart
 
 Login to GHCR previosuly.
 
 ```sh
-helm install example-net oci://ghcr.io/wss-ea-cloud-devops/example-net-helm --version 0.1.10 --namespace example-net --create-namespace
+helm install example-net oci://ghcr.io/wss-ea-cloud-devops/example-net-helm --version 0.1.10 --namespace example-net --create-namespace --values values.yaml
 ```
 
 #### Install the local Helm Chart
 
-If the Helm chart is downloaded or build locally as a *.tgz* file
+If the Helm chart is downloaded or build locally as a *.tgz* file.
 
 ```sh
-helm install example-net example-net-helm-0.1.10.tgz --namespace example-net --create-namespace
+helm install example-net example-net-helm-0.1.10.tgz --namespace example-net --create-namespace  --values values.yaml
 ```
 
 ## Test application
 
 Application starts listening at HTTP port **50001** by default.
+
 Applications responds with HTTP status code *200 OK* at the following endpoints:
 
 - /

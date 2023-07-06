@@ -5,6 +5,7 @@
 
 appsettings.local*.json
 helm/chart/*
+helm/values.*.yaml
 */temp/*
 *dump
 *.tgz

@@ -19,12 +19,14 @@ elastic:
     enabled: false
     nodeUris: "https://example.com"
     indexFormat: "example-net-index-{0:yyyy}"
+    connectionGlobalHeaders: "Authorization=Basic login:passwordbase64="
   apm:
     enabled: false
     serverUrls: "https://example.com"
     serviceName: "example-net"
     environment: prod
     metricsInterval: 2m
+    apiKey: "dummy=="
     
 keyvault:
   enabled: false

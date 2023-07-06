@@ -7,5 +7,5 @@
 helm lint --strict
 helm install --dry-run --debug --generate-name ./
 helm package ./
-mv example-net* ./chart
+mv example-net-helm* ./chart
 helm repo index ./chart
