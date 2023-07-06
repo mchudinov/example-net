@@ -133,7 +133,7 @@ Local container configuration
 1. Set local environment variable **DOTNET_ENVIRONMENT=localcontainer**
 When start application from Visual Studion this environment variable is configured in **launchSettings.json** file.
 
-2. Configure settings in **appsettings.localcontainer.json**
+2. Configure settings in **appsettings.localcontainer.json** file
 
 ```json
 {
@@ -183,11 +183,11 @@ When start application from Visual Studion this environment variable is configur
 
 ### Executable
 
-Run *ExampleNet.exe* file from it's location.
+Run executable *ExampleNet.exe* file from it's location.
 
 ### Docker
 
-1. Pull the Docker image *example-net-docker* or build an image locally.
+1. Pull the Docker image *example-net-docker* or build the image locally.
 2. Run container
 
 ```sh
@@ -196,7 +196,7 @@ docker run --publish 50001:8080 --env DOTNET_ENVIRONMENT=localcontainer example-
 
 ### Docker Compose
 
-Run the following command from project's root directory.
+Run the following command from solution's root directory. This will build a new container image and run it.
 
 ```sh
 docker compose up
@@ -206,8 +206,8 @@ docker compose up
 
 #### Prerequisites
 
-Kubernetes cluster must have priority class *user-normal* defined.
-Kubernetes cluster must have *container-registry-pullsecret* pull secret for the GHCR defined in the target namespace *example-net*.
+- Kubernetes cluster must have priority class *user-normal* defined.
+- Kubernetes cluster must have *container-registry-pullsecret* pull secret for the GHCR defined in the target namespace *example-net*.
 
 #### Install the remote Helm Chart
 
