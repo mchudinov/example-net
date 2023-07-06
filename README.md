@@ -1,19 +1,29 @@
 # example-net
+
 Eample .NET application
 
 ## Build solution
+
 ### Visual Studio
+
 ### Command line
 
 ## Pack application
+
 ### Using CLI
+
 #### Docker image
+
 #### Helm chart
+
 ### GitHub actions
 
 ## Configuration
+
 ### Logging
+
 The following logging options are supported:
+
 - Console
 - Debug window in Visual Studio
 - Seq
@@ -21,14 +31,18 @@ The following logging options are supported:
 - Elasticsearch
 
 ### Elastic APM 
+
 Elastic APM module can be switched on and off with *ElasticApm:Enabled* option.
 
 ### Configuration examples
+
 #### Local configuration
+
 1. Set local environment variable **DOTNET_ENVIRONMENT=local**
 When start application from Visual Studion this environment variable is configured in **launchSettings.json** file.
 
 2. Configure settings in **appsettings.local.json**
+
 ```json
 {
   "Settings": {
@@ -79,12 +93,16 @@ When start application from Visual Studion this environment variable is configur
   }
 }
 ```
-#### Docker
+
+#### Docker config
+
 Local container configuration
+
 1. Set local environment variable **DOTNET_ENVIRONMENT=localcontainer**
 When start application from Visual Studion this environment variable is configured in **launchSettings.json** file.
 
 2. Configure settings in **appsettings.localcontainer.json**
+
 ```json
 {
   "Settings": {
@@ -126,39 +144,60 @@ When start application from Visual Studion this environment variable is configur
   }
 }
 ```
-#### Kubernetes
+
+#### Kubernetes config
 
 ## Run the application
+
 ### Executable
+
 Run *ExampleNet.exe* file.
+
 ### Docker
+
 1. Pull the Docker image *example-net-docker*
 2. Run container
+
 ```sh
 docker run --publish 50001:8080 --env DOTNET_ENVIRONMENT=localcontainer example-net-docker
-``` 
+```
+
 ### Docker Compose
+
 Run the following command from project root directory.
+
 ```sh
 docker compose up
-``` 
+```
+
 ### Kubernetes
+
 #### Prerequisites
+
 Kubernetes cluster must have priority class *user-normal* defined.
 Kubernetes cluster must have *container-registry-pullsecret* pull secret for the GHCR defined in the target namespace *example-net*.
+
 #### Install the remote Helm Chart
+
 Login to GHCR previosuly.
+
 ```sh
 helm install example-net oci://ghcr.io/wss-ea-cloud-devops/example-net-helm --version 0.1.10 --namespace example-net --create-namespace
 ```
+
 #### Install the local Helm Chart
+
 If the Helm chart is downloaded or build locally as a *.tgz* file
+
 ```sh
 helm install example-net example-net-helm-0.1.10.tgz --namespace example-net --create-namespace
-``` 
+```
+
 ## Test application
+
 Application starts listening at HTTP port **50001** by default.
 Applications responds with HTTP status code *200 OK* at the following endpoints:
+
 - /
 - /healthz
 - /livez
