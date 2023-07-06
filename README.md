@@ -6,17 +6,49 @@ Eample .NET application
 
 ### Visual Studio
 
+Just build the solution in Visual Studio.
+
 ### Command line
 
-## Pack application
+Run the following command from the solution directory:
+
+```sh
+dotnet build --configuration Release
+```
+
+The build result as an executable is available at ```<solution root>/ExampleNet/bin/<Debug|Release>/net7.0/```
+
+## Build container
 
 ### Using CLI
 
 #### Docker image
 
+```sh
+docker build -t example-net-docker .
+```
+
 #### Helm chart
 
+```sh
+cd helm
+helm lint --strict
+helm install --dry-run --debug --generate-name ./
+helm package ./
+```
+
 ### GitHub actions
+
+Application will be build and packed automatically after pushing a new tag.
+
+Tag's name **must** start with **v** letter. For example **v1.2.3**
+
+Docker image and Helm chart will be versioned after the tag:
+
+- example-net-docker:1.2.3
+- example-net-helm:1.2.3
+
+Both the Docker image and the Helm chart will be pushed to the GitHub Container Registry for *WSS-EA-Cloud-DevOps* organizationn.
 
 ## Configuration
 
@@ -30,7 +62,7 @@ The following logging options are supported:
 - Syslog TCP/UDP
 - Elasticsearch
 
-### Elastic APM 
+### Elastic APM
 
 Elastic APM module can be switched on and off with *ElasticApm:Enabled* option.
 
@@ -151,11 +183,11 @@ When start application from Visual Studion this environment variable is configur
 
 ### Executable
 
-Run *ExampleNet.exe* file.
+Run *ExampleNet.exe* file from it's location.
 
 ### Docker
 
-1. Pull the Docker image *example-net-docker*
+1. Pull the Docker image *example-net-docker* or build an image locally.
 2. Run container
 
 ```sh
@@ -164,7 +196,7 @@ docker run --publish 50001:8080 --env DOTNET_ENVIRONMENT=localcontainer example-
 
 ### Docker Compose
 
-Run the following command from project root directory.
+Run the following command from project's root directory.
 
 ```sh
 docker compose up
