@@ -2,6 +2,31 @@
 
 Eample .NET application
 
+- [Build solution](#build-solution)
+  - [Visual Studio](#visual-studio)
+  - [Command line](#command-line)
+- [Build container](#build-container)
+  - [Using CLI](#using-cli)
+    - [Docker image](#docker-image)
+    - [Helm chart](#helm-chart)
+  - [GitHub actions](#github-actions)
+- [Configuration](#configuration)
+  - [Logging](#logging)
+  - [Elastic APM](#elastic-apm)
+  - [Configuration examples](#configuration-examples)
+    - [Local configuration](#local-configuration)
+    - [Docker config](#docker-config)
+    - [Kubernetes config](#kubernetes-config)
+- [Run the application](#run-the-application)
+  - [Executable](#executable)
+  - [Docker](#docker)
+  - [Docker Compose](#docker-compose)
+  - [Kubernetes](#kubernetes)
+    - [Prerequisites](#prerequisites)
+    - [Install the remote Helm Chart](#install-the-remote-helm-chart)
+    - [Install the local Helm Chart](#install-the-local-helm-chart)
+- [Test application](#test-application)
+
 ## Build solution
 
 ### Visual Studio
