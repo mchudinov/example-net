@@ -51,10 +51,10 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
-            - name: Settings__TimeSpan
-              value: {{ .Values.settings.timeSpan }}
-            - name: Serilog__MinimumLevel
-              value: {{ .Values.settings.logLevel }}
+            - name: "Settings__TimeSpan"
+              value: "{{ .Values.settings.timeSpan }}"
+            - name: "Serilog__MinimumLevel"
+              value: "{{ .Values.settings.logLevel }}"
           #   {{ if .Values.elastic.apm.enabled }}
           #   - name: ElasticApm__Enabled
           #     value: {{ .Values.elastic.apm.enabled }}
