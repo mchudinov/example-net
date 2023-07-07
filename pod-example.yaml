@@ -1,0 +1,44 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  namespace: example-net
+  name: example-net-test
+spec:
+  imagePullSecrets:
+    - name: container-registry-pullsecret
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000 
+  containers:
+  - name: example-net
+    image: ghcr.io/wss-ea-cloud-devops/example-net-docker:0.2.6
+    imagePullPolicy: Always
+    ports:
+    - containerPort: 50001
+      name: http
+      protocol: TCP
+    securityContext:
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: [ ALL ]
+    resources:
+      limits:
+        cpu: 200m
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 256Mi
+    livenessProbe:
+      httpGet:
+        path: /livez
+        port: 50001
+      initialDelaySeconds: 120
+      periodSeconds: 10
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 50001
+      initialDelaySeconds: 120
+      periodSeconds: 10

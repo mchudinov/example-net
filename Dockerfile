@@ -9,10 +9,8 @@ RUN dotnet publish -c Release -o out
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:7.0
-ENV DOTNET_EnableDiagnostics=0
 WORKDIR /App
-COPY --from=build-env /App/out .
-
 EXPOSE 50001/tcp
-
+ENV DOTNET_EnableDiagnostics=0
+COPY --from=build-env /App/out .
 ENTRYPOINT ["dotnet", "ExampleNet.dll"]
