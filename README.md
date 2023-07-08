@@ -145,7 +145,7 @@ When start application from Visual Studion this environment variable is configur
         "Name": "Elasticsearch",
         "Args": {
           "nodeUris": "https://elastic-mp-platform-sandbox.es.westeurope.azure.elastic-cloud.com",
-          "indexFormat": "example-net-index-{0:yyyy}",
+          "indexFormat": "example-net-{0:yyyy}",
           "connectionGlobalHeaders": "Authorization=Basic login:passwordbase64="
         }
       }
@@ -189,7 +189,7 @@ When start application from Visual Studion this environment variable is configur
         "Name": "Elasticsearch",
         "Args": {
           "nodeUris": "https://elastic-mp-platform-sandbox.es.westeurope.azure.elastic-cloud.com",
-          "indexFormat": "example-net-index-{0:yyyy}",
+          "indexFormat": "example-net-{0:yyyy}",
           "connectionGlobalHeaders": "Authorization=Basic xxx="
         }
       }
@@ -257,7 +257,7 @@ elastic:
   log:
     enabled: true
     nodeUris: "https://elastic-mp-platform-sandbox.es.westeurope.azure.elastic-cloud.com"
-    indexFormat: "example-net-index-{0:yyyy}"
+    indexFormat: "example-net-{0:yyyy}"
     connectionGlobalHeaders: "Authorization=Basic login:passwordbase64="
   apm:
     enabled: true
@@ -281,7 +281,7 @@ keyvault:
 Login to GHCR previosuly.
 
 ```sh
-helm install example-net oci://ghcr.io/wss-ea-cloud-devops/example-net-helm --version 0.1.10 --namespace example-net --create-namespace --values values.yaml
+helm install example-net oci://ghcr.io/wss-ea-cloud-devops/example-net-helm --namespace example-net --create-namespace --values values.yaml
 ```
 
 #### Install the local Helm Chart

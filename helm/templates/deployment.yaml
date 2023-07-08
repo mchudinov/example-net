@@ -44,10 +44,14 @@ spec:
             httpGet:
               path: /livez
               port: http
+            initialDelaySeconds: 60
+            periodSeconds: 60
           readinessProbe:
             httpGet:
               path: /readyz
               port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
@@ -57,7 +61,7 @@ spec:
               value: "{{ .Values.settings.logLevel }}"
             {{ if .Values.elastic.apm.enabled }}
             - name: "ElasticApm__Enabled"
-              value: {{ .Values.elastic.apm.enabled }}
+              value: "{{ .Values.elastic.apm.enabled }}"
             - name: "ElasticApm__ServerUrls"
               value: "{{ .Values.elastic.apm.serverUrls }}"
             - name: "ElasticApm__ServiceName"

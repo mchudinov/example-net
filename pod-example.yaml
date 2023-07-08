@@ -12,11 +12,11 @@ spec:
     fsGroup: 1000 
   containers:
   - name: example-net
-    image: ghcr.io/wss-ea-cloud-devops/example-net-docker:0.2.6
+    image: ghcr.io/wss-ea-cloud-devops/example-net-docker:0.2.7
     imagePullPolicy: Always
     ports:
-    - containerPort: 50001
-      name: http
+    - name: http
+      containerPort: 50001
       protocol: TCP
     securityContext:
       runAsNonRoot: true
@@ -33,12 +33,12 @@ spec:
     livenessProbe:
       httpGet:
         path: /livez
-        port: 50001
+        port: http
       initialDelaySeconds: 120
-      periodSeconds: 10
+      periodSeconds: 60
     readinessProbe:
       httpGet:
         path: /readyz
-        port: 50001
+        port: http
       initialDelaySeconds: 120
       periodSeconds: 10
