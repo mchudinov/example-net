@@ -23,7 +23,7 @@
                 {
                     (string Value, IConfigurationProvider Provider) valueAndProvider = GetValueAndProvider(root, child.Path);
 
-                    if (valueAndProvider.Provider != null)
+                    if (valueAndProvider.Provider is not null && !String.IsNullOrEmpty(rootPath))
                     {
                         keys.Add(rootPath + ":" + child.Key + "=" + valueAndProvider.Value);
                     }
