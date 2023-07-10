@@ -34,10 +34,11 @@ spec:
       httpGet:
         path: /livez
         port: http
-      initialDelaySeconds: 120
+      initialDelaySeconds: 60
       periodSeconds: 60
     readinessProbe:
       httpGet:
         path: /readyz
         port: http
-      initialDelaySeconds: 120
+      initialDelaySeconds: 60
+      periodSeconds: 60
