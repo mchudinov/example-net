@@ -31,7 +31,9 @@ namespace ExampleNet
                     .AddJsonFile("appsettings.json")
                     .AddJsonFile($"appsettings.{enviroment}.json", optional: true)
                     .Build();
-                var settings = configuration.GetRequiredSection("Settings").Get<Settings>();               
+                var settings = configuration.GetRequiredSection("Settings").Get<Settings>();
+
+                configuration.AllConfigurationKeys().LogStrings();
 
                 IHostBuilder hostBuilder = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
                     .ConfigureHostConfiguration(configBuilder => 

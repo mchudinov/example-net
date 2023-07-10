@@ -51,7 +51,6 @@ spec:
               path: /readyz
               port: http
             initialDelaySeconds: 60
-            periodSeconds: 10
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:

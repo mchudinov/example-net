@@ -24,9 +24,11 @@ Eample .NET application
     - [Docker Compose](#docker-compose)
     - [Kubernetes](#kubernetes)
       - [Prerequisites](#prerequisites)
-      - [Custom values.yaml example](#custom-valuesyaml-example)
-      - [Install the remote Helm Chart](#install-the-remote-helm-chart)
-      - [Install the local Helm Chart](#install-the-local-helm-chart)
+      - [Install using Helm chart](#install-using-helm-chart)
+        - [Custom values.yaml example](#custom-valuesyaml-example)
+        - [Install the remote Helm Chart](#install-the-remote-helm-chart)
+        - [Install the local Helm Chart](#install-the-local-helm-chart)
+      - [Run as a single pod](#run-as-a-single-pod)
   - [Test application](#test-application)
 
 ## Build solution
@@ -246,7 +248,9 @@ Ask Cloud&DevOps team *container-registry-pullsecret* pull secret for the GHCR.
 
 Application's configuration can be done using the custom *--values values.yaml*
 
-#### Custom values.yaml example
+#### Install using Helm chart
+
+##### Custom values.yaml example
 
 ```yaml
 settings:
@@ -276,7 +280,7 @@ keyvault:
 
 **NB!** Values from a Key Vault has preference over values from *values.yaml* config file.
 
-#### Install the remote Helm Chart
+##### Install the remote Helm Chart
 
 Login to GHCR previosuly.
 
@@ -284,12 +288,20 @@ Login to GHCR previosuly.
 helm install example-net oci://ghcr.io/wss-ea-cloud-devops/example-net-helm --namespace example-net --create-namespace --values values.yaml
 ```
 
-#### Install the local Helm Chart
+##### Install the local Helm Chart
 
 If the Helm chart is downloaded or build locally as a *.tgz* file.
 
 ```sh
 helm install example-net example-net-helm-0.1.10.tgz --namespace example-net --create-namespace  --values values.yaml
+```
+
+#### Run as a single pod
+
+A single pod example is given in the source code ```pod-example.yaml```
+
+```sh
+kubectl apply -f pod-example.yaml
 ```
 
 ## Test application

@@ -41,4 +41,3 @@ spec:
         path: /readyz
         port: http
       initialDelaySeconds: 120
-      periodSeconds: 10
