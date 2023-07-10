@@ -24,15 +24,18 @@ namespace ExampleNet
             {
                 Serilog.Log.Logger.Information("Example .NET application is running");
                 Serilog.Log.Logger.Information($".NET Version: {Environment.Version.ToString()}");
+                Serilog.Log.Logger.Information("Environment variables");
                 OutputEnvironmentVariables();
 
                 var enviroment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
                 var configuration = new ConfigurationBuilder()
                     .AddJsonFile("appsettings.json")
                     .AddJsonFile($"appsettings.{enviroment}.json", optional: true)
+                    .AddEnvironmentVariables()
                     .Build();
                 var settings = configuration.GetRequiredSection("Settings").Get<Settings>();
 
+                Serilog.Log.Logger.Information("Final configuration");
                 configuration.AllConfigurationKeys().LogStrings();
 
                 IHostBuilder hostBuilder = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder(args)
