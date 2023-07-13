@@ -24,15 +24,15 @@ elastic:
     enabled: false
     serverUrls: "https://example.com"
     serviceName: "example-net"
-    environment: prod
+    environment: development
     metricsInterval: 2m
     apiKey: "dummy=="
     
 keyvault:
   enabled: false
   name: kv-mp-example-net-sol
-  userAssignedIdentityID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-  tenantId: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  userAssignedIdentityID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx    # appid for example azurekeyvaultsecretsprovider-aks-mp-mgmt-cl1-sol
+  tenantId: 5d0227ad-3bcc-4106-8cf3-16e735f3b4c4
 
 priorityClassName: user-normal
 
