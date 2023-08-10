@@ -25,7 +25,7 @@ elastic:
     serverUrls: "https://example.com"
     serviceName: "example-net"
     environment: development
-    metricsInterval: 2m
+    metricsInterval: "2m"
     apiKey: "dummy=="
     
 keyvault:

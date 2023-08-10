@@ -65,14 +65,14 @@ spec:
             - name: "ElasticApm__ServerUrls"
               value: "{{ .Values.elastic.apm.serverUrls }}"
             - name: "ElasticApm__ServiceName"
-              value: {{ .Values.elastic.apm.serviceName }}
+              value: "{{ .Values.elastic.apm.serviceName }}"
             - name: "ElasticApm__Environment"
-              value: {{ .Values.elastic.apm.environment }}
+              value: "{{ .Values.elastic.apm.environment }}"
             - name: "ElasticApm__MetricsInterval"
-              value: {{ .Values.elastic.apm.metricsInterval }}
+              value: "{{ .Values.elastic.apm.metricsInterval }}"
               {{ if .Values.elastic.apm.apiKey }}
             - name: "ElasticApm__ApiKey"
-              value: {{ .Values.elastic.apm.apiKey }}
+              value: "{{ .Values.elastic.apm.apiKey }}"
               {{- end }}
             {{- end }}
             {{ if .Values.elastic.log.enabled }}  
