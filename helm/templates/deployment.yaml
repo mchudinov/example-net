@@ -54,6 +54,12 @@ spec:
             periodSeconds: 60
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{ if .Values.keyvault.enabled }}
+          volumeMounts:
+            - name: secrets-store
+              readOnly: true
+              mountPath: /mnt/secrets-store
+          {{- end }}        
           env:
             - name: "Settings__TimeSpan"
               value: "{{ .Values.settings.timeSpan }}"
@@ -103,6 +109,15 @@ spec:
                   key: serilog-writeto-1-args-connectionglobalheaders
               {{- end }}
             {{- end }}
+      volumes:
+        {{ if .Values.keyvault.enabled }}
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ include "app.name" . }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
