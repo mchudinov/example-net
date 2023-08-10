@@ -9,7 +9,7 @@ metadata:
 spec:
   containers:
     - name: wget
-      image: busybox:1.35
+      image: registry.hub.docker.com/library/busybox:1
       imagePullPolicy: Always
       command: ['wget']
       args: ['{{ include "app.name" . }}:{{ .Values.service.port }}']
