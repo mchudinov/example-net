@@ -1,9 +1,4 @@
-﻿using System.Collections;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-
-namespace ExampleNet
+﻿namespace ExampleNet
 {
     public class TimedHostedService : IHostedService, IDisposable
     {
