@@ -28,7 +28,7 @@
                 _watch.Start();
 
                 _logger.LogInformation("Timed Hosted Service is running.");
-                _logger.LogInformation("TimedSpan = {TimeSpan}", _settings?.TimeSpan);
+                _logger.LogInformation("TimeSpan = {TimeSpan}", _settings?.TimeSpan);
 
                 _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds((_settings is null) ? DefaultTimeSpanSec : _settings.TimeSpan));
 
