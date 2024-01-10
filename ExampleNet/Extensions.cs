@@ -4,11 +4,11 @@
     {
         public static List<string> AllConfigurationKeys(this IConfigurationRoot root)
         {
-            (string Value, IConfigurationProvider Provider) GetValueAndProvider(IConfigurationRoot root, string key)
+            (string? Value, IConfigurationProvider? Provider) GetValueAndProvider(IConfigurationRoot root, string key)
             {
                 foreach (IConfigurationProvider provider in root.Providers.Reverse())
                 {
-                    if (provider.TryGet(key, out string value))
+                    if (provider.TryGet(key, out string? value))
                     {
                         return (value, provider);
                     }
@@ -21,11 +21,11 @@
             {
                 foreach (IConfigurationSection child in children)
                 {
-                    (string Value, IConfigurationProvider Provider) valueAndProvider = GetValueAndProvider(root, child.Path);
+                    (string? Value, IConfigurationProvider? Provider) = GetValueAndProvider(root, child.Path);
 
-                    if (valueAndProvider.Provider is not null && !String.IsNullOrEmpty(rootPath))
+                    if (Provider is not null && !String.IsNullOrEmpty(rootPath))
                     {
-                        keys.Add(rootPath + ":" + child.Key + "=" + valueAndProvider.Value);
+                        keys.Add(rootPath + ":" + child.Key + "=" + Value);
                     }
 
                     RecurseChildren(keys, child.GetChildren(), child.Path);

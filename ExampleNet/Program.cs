@@ -23,8 +23,8 @@ namespace ExampleNet
             try
             {
                 Serilog.Log.Logger.Information("Example .NET application is running");
-                Serilog.Log.Logger.Information($".NET Version: {Environment.Version.ToString()}");
-                Serilog.Log.Logger.Information("► Environment variables");
+                Serilog.Log.Logger.Debug($".NET Version: {Environment.Version}");
+                Serilog.Log.Logger.Debug("► Environment variables");
                 OutputEnvironmentVariables();
 
                 var enviroment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
@@ -105,7 +105,7 @@ namespace ExampleNet
 
             foreach (var e in envVars)
             {
-                Serilog.Log.Information("{variabel}:{value}", e.Key, e.Value);
+                Serilog.Log.Debug("{variabel}:{value}", e.Key, e.Value);
             }
         }
     }
