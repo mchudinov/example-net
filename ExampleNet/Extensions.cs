@@ -1,4 +1,6 @@
-﻿namespace ExampleNet
+﻿using System.Collections;
+
+namespace ExampleNet
 {
     public static class Extensions
     {
@@ -42,6 +44,17 @@
             foreach (var e in list)
             {
                 Serilog.Log.Information(e);
+            }
+        }
+
+        public static void OutputEnvironmentVariables(this IDictionary d)
+        {
+            var envVars = d.Cast<DictionaryEntry>();
+            envVars = envVars.OrderBy(x => (string)x.Key);
+
+            foreach (var e in envVars)
+            {
+                Serilog.Log.Debug("{variabel}:{value}", e.Key, e.Value);
             }
         }
     }

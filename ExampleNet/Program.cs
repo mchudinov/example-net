@@ -25,7 +25,7 @@ namespace ExampleNet
                 Serilog.Log.Logger.Information("Example .NET application is running");
                 Serilog.Log.Logger.Debug($".NET Version: {Environment.Version}");
                 Serilog.Log.Logger.Debug("► Environment variables");
-                OutputEnvironmentVariables();
+                Environment.GetEnvironmentVariables().OutputEnvironmentVariables();
 
                 var enviroment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
                 var configuration = new ConfigurationBuilder()
