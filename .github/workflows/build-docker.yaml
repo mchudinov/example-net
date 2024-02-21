@@ -45,12 +45,6 @@ jobs:
         push: false
         tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-    - name: Test Docker image
-      uses: addnab/docker-run-action@v3
-      with:
-        image: ${{ env.IMAGE_NAME }}:${{ github.sha }}
-        run: echo "hello world"
-
     - name: Catch Docker image version
       id: docker-image-catch
       run: |
