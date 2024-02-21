@@ -77,6 +77,13 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
+    - uses: sigstore/cosign-installer@main
+    # - name: Sign the image
+    #   run: |
+    #     cosign sign ghcr.io/${{ env.IMAGE_NAME }}
+    #   env:
+    #     COSIGN_EXPERIMENTAL: 1        
+
   Update-Chart-Version:
     needs: Build-and-Push-Docker
     runs-on: ubuntu-latest
