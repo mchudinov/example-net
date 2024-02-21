@@ -25,10 +25,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Helm installation
-      uses: azure/setup-helm@v3
+      uses: azure/setup-helm@v4
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
@@ -57,7 +57,7 @@ jobs:
     - name: Dry-run install
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
       run: |
-        helm install --dry-run --generate-name ./      
+        helm install --dry-run --generate-name ./
 
     # Optional steps check Helm chart with Fairwinds Polaris tool
     - name: Setup Polaris
@@ -77,10 +77,10 @@ jobs:
       packages: write
 
     steps:      
-      - uses: actions/checkout@v3    
+      - uses: actions/checkout@v4    
 
       - name: Helm installation
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
