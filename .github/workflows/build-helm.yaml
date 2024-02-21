@@ -28,7 +28,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Helm installation
-      uses: azure/setup-helm@v4
+      uses: azure/setup-helm@v3
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/checkout@v4    
 
       - name: Helm installation
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
