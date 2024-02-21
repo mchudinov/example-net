@@ -84,6 +84,7 @@ jobs:
 
     permissions:
       contents: write
+      id-token: write # Enable OIDC
 
     steps:
     - uses: actions/checkout@v4
@@ -111,10 +112,11 @@ jobs:
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
       run: helm lint --strict
 
+    - uses: chainguard-dev/actions/setup-gitsign@main
     - name: Commit chart version change
       uses: EndBug/add-and-commit@v9
       with:
         message: Change chart version to ${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}
         author_name: GitHub Actions
-        author_email: action@github.com
+        author_email: action@wilhelmsen.com
         add: '${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml'
