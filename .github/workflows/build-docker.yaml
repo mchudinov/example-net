@@ -50,10 +50,10 @@ jobs:
       run: |
         echo "DOCKER_VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}">>${GITHUB_OUTPUT}
         echo "DOCKER_REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}">>${GITHUB_OUTPUT}
-
+    
     - name: Convert registry name to lowercase
       id: toLowerCase
-      run: echo "lowerCaseRegistry=${${{ env.REGISTRY }},,}">>${GITHUB_OUTPUT}
+      run: INPUT=${{ env.REGISTRY }}; echo "lowerCaseRegistry=${INPUT,,}">>${GITHUB_OUTPUT}
     - run: echo ${{steps.toLowerCase.outputs.lowerCaseRegistry}}
 
     - name: Print Docker image info
