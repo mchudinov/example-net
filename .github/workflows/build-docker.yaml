@@ -36,14 +36,7 @@ jobs:
           type=ref,event=branch
           type=ref,event=pr
           type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}        
-
-    # - name: Build and export to Docker for test step
-    #   uses: docker/build-push-action@v5
-    #   with:
-    #     load: true
-    #     push: false
-    #     tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          type=semver,pattern={{major}}.{{minor}}
 
     - name: Catch Docker image version
       id: docker-image-catch
