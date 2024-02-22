@@ -27,11 +27,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Convert to lowercase
+      id: toLowerCase
+      run: echo "::set-output name=lowerCaseRegistry::${env.REGISTRY,,}"
+    - run: echo ${{steps.toLowerCase.outputs.lowerCaseRegistry}}  
+
     - name: Extract metadata (tags, labels) for Docker
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        images: ${{steps.toLowerCase.outputs.lowerCaseRegistry}}/${{ env.IMAGE_NAME }}
         tags: |
           type=ref,event=branch
           type=ref,event=pr
@@ -74,7 +79,7 @@ jobs:
     - uses: sigstore/cosign-installer@main
     - name: Sign the image      
       run: |
-        cosign sign ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.docker-image-catch.outputs.DOCKER_VERSION }} -y
+        cosign sign ${{steps.toLowerCase.outputs.lowerCaseRegistry}}/${{ env.IMAGE_NAME }}:${{ steps.docker-image-catch.outputs.DOCKER_VERSION }} -y
       env:
         COSIGN_EXPERIMENTAL: 1        
 
