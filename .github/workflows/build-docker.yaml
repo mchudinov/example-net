@@ -29,7 +29,7 @@ jobs:
 
     - name: Convert to lowercase
       id: toLowerCase
-      run: echo "::set-output name=lowerCaseRegistry::${env.REGISTRY,,}"
+      run: echo "::set-output name=lowerCaseRegistry::${${{ env.REGISTRY }},,}"
     - run: echo ${{steps.toLowerCase.outputs.lowerCaseRegistry}}  
 
     - name: Extract metadata (tags, labels) for Docker
