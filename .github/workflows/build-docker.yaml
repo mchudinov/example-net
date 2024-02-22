@@ -53,7 +53,8 @@ jobs:
 
     - name: Convert registry name to lowercase
       id: toLowerCase
-      run: INPUT=${{ env.REGISTRY }} echo "lowerCaseValue::${INPUT,,}">>${GITHUB_OUTPUT}
+      run: echo "lowerCaseRegistry=${${{ env.REGISTRY }},,}">>${GITHUB_OUTPUT}
+    - run: echo ${{steps.toLowerCase.outputs.lowerCaseRegistry}}
 
     - name: Print Docker image info
       run: |
