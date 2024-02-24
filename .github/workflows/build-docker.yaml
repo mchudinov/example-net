@@ -69,7 +69,7 @@ jobs:
     - uses: sigstore/cosign-installer@main
     - name: Sign the image      
       run: |
-        cosign sign ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}:${{ steps.docker-image-catch.outputs.DOCKER_VERSION }} --yes --oidc-provider github-actions
+        cosign sign ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}:${{ steps.docker-image-catch.outputs.DOCKER_VERSION }} --yes --oidc-provider='github-actions'  --oidc-issuer='https://github.com/login/oauth' --oidc-client-id='wss-bot'
       env:
         COSIGN_EXPERIMENTAL: 1        
 
