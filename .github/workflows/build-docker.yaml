@@ -78,15 +78,16 @@ jobs:
       env:
         COSIGN_EXPERIMENTAL: 1    
       run: |
-        cosign sign ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}@${{steps.docker-image-push.outputs.digest}} --yes --tlog-upload=false
+        cosign sign ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}@${{steps.docker-image-push.outputs.digest}} \
+          --yes \
+          --tlog-upload=false
       #--oidc-provider='github-actions'  --oidc-issuer='https://github.com/login/oauth' --oidc-client-id='wss-bot'
 
     - name: Verify the images
       run: |
-        cosign verify ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}@${{steps.docker-image-push.outputs.digest}}
-    # \
-    #         --certificate-identity https://github.com/whoissqr/cg-test-keyless-sign/.github/workflows/main.yml@refs/heads/main \
-    #         --certificate-oidc-issuer https://token.actions.githubusercontent.com | jq
+        cosign verify ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}@${{steps.docker-image-push.outputs.digest}} \
+          --certificate-identity-regexp '${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/.+ \
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
   Update-Chart-Version:
     needs: Build-and-Push-Docker
