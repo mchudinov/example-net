@@ -76,6 +76,11 @@ jobs:
       contents: read
       packages: write
 
+    outputs:
+      chart_version: ${{ steps.helm-chart-catch.outputs.CHART_VERSION }}
+      chart_name: ${{ steps.helm-chart-catch.outputs.CHART_NAME }}
+      registry_lowercase: ${{ steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE }}      
+
     steps:      
       - uses: actions/checkout@v4    
 
@@ -85,6 +90,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Extract chart name
+        id: helm-chart-catch
         working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
         run: |
           echo "CHART_VERSION=$(grep 'version:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_ENV}
@@ -119,3 +125,31 @@ jobs:
       - name: Publish chart to GHCR
         working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
         run: helm push "${CHART_NAME}-${CHART_VERSION}.tgz" oci://$REGISTRY_LOWERCASE
+
+  Sign-Helm-Chart:
+    needs: Build-and-Push-Helm
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      packages: write
+    
+    steps:
+      - name: Login to GHCR using Helm
+        run: echo ${{ env.GHCR_PASSWORD }}  | helm registry login ${{ env.REGISTRY }} --username ${{ env.GHCR_USERNAME }} --password-stdin
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@main
+
+      - name: Sign the chart
+        run: |
+          cosign sign ${{needs.Build-and-Push-Helm.outputs.registry_lowercase}}/${{ needs.Build-and-Push-Helm.outputs.chart_name }}:${{ needs.Build-and-Push-Helm.outputs.chart_version }} \
+            --yes \
+            --tlog-upload=false
+  
+      # - name: Verify the images
+      #   run: |
+      #     cosign verify ${{needs.Build-and-Push-Docker.outputs.registry_lowercase}}/${{ env.IMAGE_NAME }}@${{needs.Build-and-Push-Docker.outputs.docker_image_digest}} \
+      #       --certificate-identity-regexp '.+github.com\/${{ github.repository_owner }}.+' \
+      #       --certificate-oidc-issuer ${{ env.OIDC_ISSUER }} \
+      #       --insecure-ignore-tlog=true
