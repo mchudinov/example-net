@@ -45,10 +45,12 @@ jobs:
         echo "DOCKER_VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}">>${GITHUB_OUTPUT}
         echo "DOCKER_REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}">>${GITHUB_OUTPUT}
         INPUT=${{ env.REGISTRY }}; echo "REGISTRY_LOWERCASE=${INPUT,,}">>${GITHUB_OUTPUT}
+        INPUT=${{ github.repository_owner }}; echo "REPOSITORY_OWNER_LOWERCASE=${INPUT,,}">>${GITHUB_OUTPUT}
 
     - name: Print Docker image info
       run: |
         echo Registry: ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}
+        echo Repository owner: ${{steps.docker-image-catch.outputs.REPOSITORY_OWNER_LOWERCASE}}
         echo Docker image name: ${{ env.IMAGE_NAME }}
         echo Docker image version: ${{ steps.docker-image-catch.outputs.DOCKER_VERSION }}
         echo Docker image revision: ${{ steps.docker-image-catch.outputs.DOCKER_REVISION }}
@@ -81,13 +83,13 @@ jobs:
         cosign sign ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}@${{steps.docker-image-push.outputs.digest}} \
           --yes \
           --tlog-upload=false
-      #--oidc-provider='github-actions'  --oidc-issuer='https://github.com/login/oauth' --oidc-client-id='wss-bot'
 
     - name: Verify the images
       run: |
         cosign verify ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}@${{steps.docker-image-push.outputs.digest}} \
-          --certificate-identity-regexp 'https://github\.com/wss-ea-cloud-devops/.+' \
-          --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          --certificate-identity-regexp 'https://github\.com/${{steps.docker-image-catch.outputs.REPOSITORY_OWNER_LOWERCASE}}/.+' \
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+          --insecure-ignore-tlog=true
 
   Update-Chart-Version:
     needs: Build-and-Push-Docker
