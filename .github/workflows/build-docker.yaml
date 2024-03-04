@@ -19,12 +19,13 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write
       contents: read
       packages: write
 
     outputs:
       docker_image_version: ${{ steps.docker-image-catch.outputs.DOCKER_VERSION }}
+      docker_image_digest: ${{ steps.docker-image-push.outputs.digest }}
+      registry_lowercase: ${{ steps.docker-image-catch.outputs.REGISTRY_LOWERCASE }}
 
     steps:
     - uses: actions/checkout@v4
@@ -69,21 +70,27 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
-    - name: Print Docker digest
-      run: |
-        echo Digest: ${{steps.docker-image-push.outputs.digest}}
-            
+  Sign-Docker-Image:
+    needs: Build-and-Push-Docker
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+
+    steps:
+    #- uses: actions/checkout@v4
+
     - name: Install cosign
       uses: sigstore/cosign-installer@main
     - name: Sign the image
       run: |
-        cosign sign ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}@${{steps.docker-image-push.outputs.digest}} \
+        cosign sign ${{needs.Build-and-Push-Docker.outputs.registry_lowercase}}/${{ env.IMAGE_NAME }}@${{needs.Build-and-Push-Docker.outputs.docker_image_digest}} \
           --yes \
           --tlog-upload=false
 
     - name: Verify the images
       run: |
-        cosign verify ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}@${{steps.docker-image-push.outputs.digest}} \
+        cosign verify ${{needs.Build-and-Push-Docker.outputs.registry_lowercase}}/${{ env.IMAGE_NAME }}@${{needs.Build-and-Push-Docker.outputs.docker_image_digest}} \
           --certificate-identity-regexp '.+github.com\/${{ github.repository_owner }}.+' \
           --certificate-oidc-issuer ${{ env.OIDC_ISSUER }} \
           --insecure-ignore-tlog=true
@@ -97,8 +104,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-      with:
-        ref: ${{ env.BRANCH }}
 
     - name: Print Docker image version
       run: echo "Docker image version ${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}"
