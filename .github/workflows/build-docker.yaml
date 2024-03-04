@@ -11,6 +11,7 @@ env:
   HELM_WORKING_DIRECTORY: helm
   GHCR_USERNAME: ${{ github.actor }}
   GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }} 
+  OIDC_ISSUER: https://token.actions.githubusercontent.com
   BRANCH: master
   
 jobs:
@@ -45,12 +46,10 @@ jobs:
         echo "DOCKER_VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}">>${GITHUB_OUTPUT}
         echo "DOCKER_REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}">>${GITHUB_OUTPUT}
         INPUT=${{ env.REGISTRY }}; echo "REGISTRY_LOWERCASE=${INPUT,,}">>${GITHUB_OUTPUT}
-        INPUT=${{ github.repository_owner }}; echo "REPOSITORY_OWNER_LOWERCASE=${INPUT,,}">>${GITHUB_OUTPUT}
 
     - name: Print Docker image info
       run: |
         echo Registry: ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}
-        echo Repository owner: ${{steps.docker-image-catch.outputs.REPOSITORY_OWNER_LOWERCASE}}
         echo Docker image name: ${{ env.IMAGE_NAME }}
         echo Docker image version: ${{ steps.docker-image-catch.outputs.DOCKER_VERSION }}
         echo Docker image revision: ${{ steps.docker-image-catch.outputs.DOCKER_REVISION }}
@@ -77,8 +76,6 @@ jobs:
     - name: Install cosign
       uses: sigstore/cosign-installer@main
     - name: Sign the image
-      env:
-        COSIGN_EXPERIMENTAL: 1    
       run: |
         cosign sign ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}@${{steps.docker-image-push.outputs.digest}} \
           --yes \
@@ -88,7 +85,7 @@ jobs:
       run: |
         cosign verify ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}@${{steps.docker-image-push.outputs.digest}} \
           --certificate-identity-regexp '.+github.com\/${{ github.repository_owner }}.+' \
-          --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+          --certificate-oidc-issuer ${{ env.OIDC_ISSUER }} \
           --insecure-ignore-tlog=true
 
   Update-Chart-Version:

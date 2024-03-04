@@ -89,9 +89,7 @@ jobs:
         run: |
           echo "CHART_VERSION=$(grep 'version:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_ENV}
           echo "CHART_NAME=$(grep 'name:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_ENV}
-
-      - name: lowercase GHCR name
-        run: echo "REGISTRY_LOWERCASE=$(echo ${{ env.REGISTRY }} | tr '[:upper:]' '[:lower:]')" >>${GITHUB_ENV}
+          INPUT=${{ env.REGISTRY }}; echo "REGISTRY_LOWERCASE=${INPUT,,}">>${GITHUB_OUTPUT}
 
       - name: Package helm
         working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
@@ -100,8 +98,8 @@ jobs:
       - name: Print chart name
         working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
         run: |
-          echo Chart name $CHART_NAME
-          echo Chart version $CHART_VERSION
+          echo Chart name: $CHART_NAME
+          echo Chart version: $CHART_VERSION
           echo GitHub container registry: $REGISTRY_LOWERCASE
           ls *.tgz
 
