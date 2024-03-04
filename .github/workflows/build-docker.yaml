@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
+      id-token: write
       contents: read
       packages: write
 
@@ -60,18 +61,32 @@ jobs:
         password: ${{ env.GHCR_PASSWORD }}
 
     - name: Build and push Docker image
+      id: docker-image-push  
       uses: docker/build-push-action@v5
       with:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-    
-    - uses: sigstore/cosign-installer@main
-    - name: Sign the image      
+
+    - name: Print Docker digest
       run: |
-        cosign sign ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}:${{ steps.docker-image-catch.outputs.DOCKER_VERSION }} --yes --oidc-provider='github-actions'  --oidc-issuer='https://github.com/login/oauth' --oidc-client-id='wss-bot'
+        echo Digest: ${{steps.docker-image-push.outputs.digest}}
+            
+    - name: Install cosign
+      uses: sigstore/cosign-installer@main
+    - name: Sign the image
       env:
-        COSIGN_EXPERIMENTAL: 1        
+        COSIGN_EXPERIMENTAL: 1    
+      run: |
+        cosign sign ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}@${{steps.docker-image-push.outputs.digest}} --yes  
+      #  --tlog-upload=false
+      #--oidc-provider='github-actions'  --oidc-issuer='https://github.com/login/oauth' --oidc-client-id='wss-bot'
+
+    # - name: Verify the images
+    #   run: |
+    #     cosign verify ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}@${{steps.docker-image-push.outputs.digest}} \
+    #         --certificate-identity https://github.com/whoissqr/cg-test-keyless-sign/.github/workflows/main.yml@refs/heads/main \
+    #         --certificate-oidc-issuer https://token.actions.githubusercontent.com | jq
 
   Update-Chart-Version:
     needs: Build-and-Push-Docker
