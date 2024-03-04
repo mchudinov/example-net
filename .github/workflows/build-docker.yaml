@@ -78,8 +78,8 @@ jobs:
       env:
         COSIGN_EXPERIMENTAL: 1    
       run: |
-        cosign sign ${{steps.docker-image-catch.outputs.REGISTRY_LOWERCASE}}/${{ env.IMAGE_NAME }}@${{steps.docker-image-push.outputs.digest}} --yes  
-      #  --tlog-upload=false
+        cosign sign ${{steps.docker-image-push.outputs.digest}} --yes  --tlog-upload=false
+      #   
       #--oidc-provider='github-actions'  --oidc-issuer='https://github.com/login/oauth' --oidc-client-id='wss-bot'
 
     # - name: Verify the images
