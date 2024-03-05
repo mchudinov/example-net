@@ -88,7 +88,7 @@ jobs:
 
     - name: Install cosign
       uses: sigstore/cosign-installer@main
-      
+
     - name: Sign the image
       run: |
         cosign sign ${{needs.Build-and-Push-Docker.outputs.registry_lowercase}}/${{ env.IMAGE_NAME }}@${{needs.Build-and-Push-Docker.outputs.docker_image_digest}} \
@@ -134,7 +134,7 @@ jobs:
       run: helm lint --strict
 
     - name: Commit chart version change
-      uses: planetscale/ghcommit-action@v0.1.6
+      uses: planetscale/ghcommit-action@v0.1.33
       with:
         commit_message: "Change chart version to ${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}"
         repo: ${{ github.repository }}
