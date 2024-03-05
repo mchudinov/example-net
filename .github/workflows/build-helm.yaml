@@ -16,8 +16,9 @@ env:
   REGISTRY: ghcr.io/${{ github.repository_owner }}
   GHCR_USERNAME: ${{ github.actor }}
   GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  OIDC_ISSUER: https://token.actions.githubusercontent.com
   HELM_WORKING_DIRECTORY: helm
-  POLARIS_VERSION: 8.2.1
+  POLARIS_VERSION: 8.5.5
   POLARIS_EXIT_SCORE: 90
 
 jobs:
@@ -101,12 +102,12 @@ jobs:
         working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
         run: helm package ./
 
-      - name: Print chart name
+      - name: Print chart info
         working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
         run: |
-          echo Chart name: $CHART_NAME
-          echo Chart version: $CHART_VERSION
-          echo GitHub container registry: $REGISTRY_LOWERCASE
+          echo Chart name: ${{steps.helm-chart-catch.outputs.CHART_NAME}}
+          echo Chart version: ${{steps.helm-chart-catch.outputs.CHART_VERSION}}
+          echo GitHub container registry: ${{steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE}}
           ls *.tgz
 
       - name: Create a test k3d cluster for test install
@@ -117,14 +118,14 @@ jobs:
 
       - name: Test install helm chart
         working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
-        run: helm install ./"${CHART_NAME}-${CHART_VERSION}.tgz" --generate-name
+        run: helm install ./"${{steps.helm-chart-catch.outputs.CHART_NAME}}-${{steps.helm-chart-catch.outputs.CHART_VERSION}}.tgz" --generate-name
 
       - name: Login to GHCR using Helm
         run: echo ${{ env.GHCR_PASSWORD }}  | helm registry login ${{ env.REGISTRY }} --username ${{ env.GHCR_USERNAME }} --password-stdin
 
       - name: Publish chart to GHCR
         working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
-        run: helm push "${CHART_NAME}-${CHART_VERSION}.tgz" oci://$REGISTRY_LOWERCASE
+        run: helm push "${{steps.helm-chart-catch.outputs.CHART_NAME}}-${{steps.helm-chart-catch.outputs.CHART_VERSION}}.tgz" oci://${{steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE}}
 
   Sign-Helm-Chart:
     needs: Build-and-Push-Helm
@@ -147,9 +148,9 @@ jobs:
             --yes \
             --tlog-upload=false
   
-      # - name: Verify the images
-      #   run: |
-      #     cosign verify ${{needs.Build-and-Push-Docker.outputs.registry_lowercase}}/${{ env.IMAGE_NAME }}@${{needs.Build-and-Push-Docker.outputs.docker_image_digest}} \
-      #       --certificate-identity-regexp '.+github.com\/${{ github.repository_owner }}.+' \
-      #       --certificate-oidc-issuer ${{ env.OIDC_ISSUER }} \
-      #       --insecure-ignore-tlog=true
+      - name: Verify the images
+        run: |
+          cosign verify ${{needs.Build-and-Push-Helm.outputs.registry_lowercase}}/${{ needs.Build-and-Push-Helm.outputs.chart_name }}:${{ needs.Build-and-Push-Helm.outputs.chart_version }} \
+            --certificate-identity-regexp '.+github.com\/${{ github.repository_owner }}.+' \
+            --certificate-oidc-issuer ${{ env.OIDC_ISSUER }} \
+            --insecure-ignore-tlog=true
