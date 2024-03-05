@@ -115,7 +115,6 @@ jobs:
     - name: Print Docker image version
       run: |
         echo "Docker image version ${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}"
-        echo branch: ${{ github.ref }}
 
     - name: Print Chart.yaml before change
       run: cat ${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml
@@ -131,9 +130,9 @@ jobs:
     - name: Print Chart.yaml after change
       run: cat ${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml
 
-    # - name: Lint helm
-    #   working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
-    #   run: helm lint --strict
+    - name: Lint helm
+      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+      run: helm lint --strict
 
     - name: Commit chart version change
       uses: planetscale/ghcommit-action@v0.1.33
