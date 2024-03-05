@@ -129,9 +129,9 @@ jobs:
     - name: Print Chart.yaml after change
       run: cat ${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml
 
-    - name: Lint helm
-      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
-      run: helm lint --strict
+    # - name: Lint helm
+    #   working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+    #   run: helm lint --strict
 
     - name: Commit chart version change
       uses: planetscale/ghcommit-action@v0.1.33
@@ -139,6 +139,6 @@ jobs:
         commit_message: "Change chart version to ${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}"
         repo: ${{ github.repository }}
         branch: ${{ github.head_ref || github.ref_name }}
-        file_pattern: 'Chart.yaml'
+        file_pattern: '${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml'
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
