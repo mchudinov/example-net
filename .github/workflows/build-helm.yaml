@@ -53,6 +53,7 @@ jobs:
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
       run: |
         echo Chart name: ${{ steps.helm-chart-catch.outputs.CHART_NAME }}
+        echo Chart name: $CHART_NAME
         echo Chart version: ${{ steps.helm-chart-catch.outputs.CHART_VERSION }}
         echo GitHub container registry: ${{steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE}}
 
