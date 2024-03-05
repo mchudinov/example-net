@@ -132,9 +132,6 @@ jobs:
           username: ${{ env.GHCR_USERNAME }}
           password: ${{ env.GHCR_PASSWORD }}
 
-      - name: Login to GHCR using Helm
-        run: echo ${{ env.GHCR_PASSWORD }}  | helm registry login ${{ env.REGISTRY }} --username ${{ env.GHCR_USERNAME }} --password-stdin
-
       - name: Install cosign
         uses: sigstore/cosign-installer@main
 
