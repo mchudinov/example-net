@@ -41,7 +41,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-    - name: Extract chart name
+    - name: Extract chart info
       id: helm-chart-catch
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
       run: |
@@ -49,7 +49,7 @@ jobs:
         echo "CHART_NAME=$(grep 'name:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_OUTPUT}
         INPUT=${{ env.REGISTRY }}; echo "REGISTRY_LOWERCASE=${INPUT,,}">>${GITHUB_OUTPUT}
 
-    - name: Print chart name
+    - name: Print chart info
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
       run: |
         echo Chart name: ${{ steps.helm-chart-catch.outputs.CHART_NAME }}
