@@ -83,7 +83,11 @@ jobs:
         version: ${{ env.POLARIS_VERSION }}
 
     - name: Use Polaris
-      run: polaris audit --helm-chart ${{ env.HELM_WORKING_DIRECTORY }} --helm-values ./${{ env.HELM_WORKING_DIRECTORY }}/values.yaml --only-show-failed-tests true --format=pretty --set-exit-code-on-danger --set-exit-code-below-score ${{ env.POLARIS_EXIT_SCORE }} --config .github/polaris-config.yaml
+      run: polaris audit --helm-chart ${{ env.HELM_WORKING_DIRECTORY }} \
+        --helm-values ./${{ env.HELM_WORKING_DIRECTORY }}/values.yaml \
+        --only-show-failed-tests true --format=pretty --set-exit-code-on-danger \
+        --set-exit-code-below-score ${{ env.POLARIS_EXIT_SCORE }} \
+        --config .github/polaris-config.yaml
 
   Build-and-Push-Helm:
     needs: Check-Helm
