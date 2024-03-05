@@ -61,6 +61,10 @@ jobs:
       run: |
         helm install --dry-run --generate-name ./
 
+    - name: Test install helm chart
+      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+      run: helm install ./"${{steps.helm-chart-catch.outputs.CHART_NAME}}-${{steps.helm-chart-catch.outputs.CHART_VERSION}}.tgz" --generate-name
+
     # Optional steps check Helm chart with Fairwinds Polaris tool
     - name: Setup Polaris
       uses: FairwindsOps/polaris/.github/actions/setup-polaris@master
@@ -70,88 +74,88 @@ jobs:
     - name: Use Polaris
       run: polaris audit --helm-chart ${{ env.HELM_WORKING_DIRECTORY }} --helm-values ./${{ env.HELM_WORKING_DIRECTORY }}/values.yaml --only-show-failed-tests true --format=pretty --set-exit-code-on-danger --set-exit-code-below-score ${{ env.POLARIS_EXIT_SCORE }} --config .github/polaris-config.yaml
 
-  Build-and-Push-Helm:
-    needs: Check-Helm
-    runs-on: ubuntu-latest
+  # Build-and-Push-Helm:
+  #   needs: Check-Helm
+  #   runs-on: ubuntu-latest
     
-    permissions:
-      contents: read
-      packages: write
+  #   permissions:
+  #     contents: read
+  #     packages: write
 
-    outputs:
-      chart_version: ${{ steps.helm-chart-catch.outputs.CHART_VERSION }}
-      chart_name: ${{ steps.helm-chart-catch.outputs.CHART_NAME }}
-      registry_lowercase: ${{ steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE }}      
+  #   outputs:
+  #     chart_version: ${{ steps.helm-chart-catch.outputs.CHART_VERSION }}
+  #     chart_name: ${{ steps.helm-chart-catch.outputs.CHART_NAME }}
+  #     registry_lowercase: ${{ steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE }}      
 
-    steps:      
-      - uses: actions/checkout@v4    
+  #   steps:      
+  #     - uses: actions/checkout@v4    
 
-      - name: Helm installation
-        uses: azure/setup-helm@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Helm installation
+  #       uses: azure/setup-helm@v3
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Extract chart name
-        id: helm-chart-catch
-        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
-        run: |
-          echo "CHART_VERSION=$(grep 'version:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_ENV}
-          echo "CHART_NAME=$(grep 'name:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_ENV}
-          INPUT=${{ env.REGISTRY }}; echo "REGISTRY_LOWERCASE=${INPUT,,}">>${GITHUB_OUTPUT}
+  #     # - name: Extract chart name
+  #     #   id: helm-chart-catch
+  #     #   working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+  #     #   run: |
+  #     #     echo "CHART_VERSION=$(grep 'version:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_ENV}
+  #     #     echo "CHART_NAME=$(grep 'name:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_ENV}
+  #     #     INPUT=${{ env.REGISTRY }}; echo "REGISTRY_LOWERCASE=${INPUT,,}">>${GITHUB_OUTPUT}
 
-      - name: Package helm
-        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
-        run: helm package ./
+  #     - name: Package helm
+  #       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
+  #       run: helm package ./
 
-      - name: Print chart info
-        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
-        run: |
-          echo Chart name: ${{steps.helm-chart-catch.outputs.CHART_NAME}}
-          echo Chart version: ${{steps.helm-chart-catch.outputs.CHART_VERSION}}
-          echo GitHub container registry: ${{steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE}}
-          ls *.tgz
+  #     # - name: Print chart info
+  #     #   working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+  #     #   run: |
+  #     #     echo Chart name: ${{steps.helm-chart-catch.outputs.CHART_NAME}}
+  #     #     echo Chart version: ${{steps.helm-chart-catch.outputs.CHART_VERSION}}
+  #     #     echo GitHub container registry: ${{steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE}}
+  #     #     ls *.tgz
 
-      - name: Create a test k3d cluster for test install
-        uses: AbsaOSS/k3d-action@v2
-        with:
-          cluster-name: "test-cluster"
-          args: --agents 1
+  #     # - name: Create a test k3d cluster for test install
+  #     #   uses: AbsaOSS/k3d-action@v2
+  #     #   with:
+  #     #     cluster-name: "test-cluster"
+  #     #     args: --agents 1
 
-      - name: Test install helm chart
-        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
-        run: helm install ./"${{steps.helm-chart-catch.outputs.CHART_NAME}}-${{steps.helm-chart-catch.outputs.CHART_VERSION}}.tgz" --generate-name
+  #     # - name: Test install helm chart
+  #     #   working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+  #     #   run: helm install ./"${{steps.helm-chart-catch.outputs.CHART_NAME}}-${{steps.helm-chart-catch.outputs.CHART_VERSION}}.tgz" --generate-name
 
-      - name: Login to GHCR using Helm
-        run: echo ${{ env.GHCR_PASSWORD }}  | helm registry login ${{ env.REGISTRY }} --username ${{ env.GHCR_USERNAME }} --password-stdin
+  #     - name: Login to GHCR using Helm
+  #       run: echo ${{ env.GHCR_PASSWORD }}  | helm registry login ${{ env.REGISTRY }} --username ${{ env.GHCR_USERNAME }} --password-stdin
 
-      - name: Publish chart to GHCR
-        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
-        run: helm push "${{steps.helm-chart-catch.outputs.CHART_NAME}}-${{steps.helm-chart-catch.outputs.CHART_VERSION}}.tgz" oci://${{steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE}}
+  #     - name: Publish chart to GHCR
+  #       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+  #       run: helm push "${{steps.helm-chart-catch.outputs.CHART_NAME}}-${{steps.helm-chart-catch.outputs.CHART_VERSION}}.tgz" oci://${{steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE}}
 
-  Sign-Helm-Chart:
-    needs: Build-and-Push-Helm
-    runs-on: ubuntu-latest
+  # Sign-Helm-Chart:
+  #   needs: Build-and-Push-Helm
+  #   runs-on: ubuntu-latest
     
-    permissions:
-      id-token: write
-      packages: write
+  #   permissions:
+  #     id-token: write
+  #     packages: write
     
-    steps:
-      - name: Login to GHCR using Helm
-        run: echo ${{ env.GHCR_PASSWORD }}  | helm registry login ${{ env.REGISTRY }} --username ${{ env.GHCR_USERNAME }} --password-stdin
+  #   steps:
+  #     - name: Login to GHCR using Helm
+  #       run: echo ${{ env.GHCR_PASSWORD }}  | helm registry login ${{ env.REGISTRY }} --username ${{ env.GHCR_USERNAME }} --password-stdin
 
-      - name: Install cosign
-        uses: sigstore/cosign-installer@main
+  #     - name: Install cosign
+  #       uses: sigstore/cosign-installer@main
 
-      - name: Sign the chart
-        run: |
-          cosign sign ${{needs.Build-and-Push-Helm.outputs.registry_lowercase}}/${{ needs.Build-and-Push-Helm.outputs.chart_name }}:${{ needs.Build-and-Push-Helm.outputs.chart_version }} \
-            --yes \
-            --tlog-upload=false
+  #     - name: Sign the chart
+  #       run: |
+  #         cosign sign ${{needs.Build-and-Push-Helm.outputs.registry_lowercase}}/${{ needs.Build-and-Push-Helm.outputs.chart_name }}:${{ needs.Build-and-Push-Helm.outputs.chart_version }} \
+  #           --yes \
+  #           --tlog-upload=false
   
-      - name: Verify the images
-        run: |
-          cosign verify ${{needs.Build-and-Push-Helm.outputs.registry_lowercase}}/${{ needs.Build-and-Push-Helm.outputs.chart_name }}:${{ needs.Build-and-Push-Helm.outputs.chart_version }} \
-            --certificate-identity-regexp '.+github.com\/${{ github.repository_owner }}.+' \
-            --certificate-oidc-issuer ${{ env.OIDC_ISSUER }} \
-            --insecure-ignore-tlog=true
+  #     - name: Verify the images
+  #       run: |
+  #         cosign verify ${{needs.Build-and-Push-Helm.outputs.registry_lowercase}}/${{ needs.Build-and-Push-Helm.outputs.chart_name }}:${{ needs.Build-and-Push-Helm.outputs.chart_version }} \
+  #           --certificate-identity-regexp '.+github.com\/${{ github.repository_owner }}.+' \
+  #           --certificate-oidc-issuer ${{ env.OIDC_ISSUER }} \
+  #           --insecure-ignore-tlog=true
