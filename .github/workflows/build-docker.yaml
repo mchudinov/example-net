@@ -115,7 +115,7 @@ jobs:
     - name: Print Docker image version
       run: |
         echo "Docker image version ${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}"
-        echo branch: ${{ github.head_ref || github.ref_name }}
+        echo branch: ${{ github.ref }}
 
     - name: Print Chart.yaml before change
       run: cat ${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml
@@ -140,7 +140,7 @@ jobs:
       with:
         commit_message: "Change chart version to ${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}"
         repo: ${{ github.repository }}
-        branch: ${{ github.head_ref || github.ref_name }}
+        branch: ${{ env.BRANCH }}
         file_pattern: '${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml'
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
