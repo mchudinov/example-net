@@ -34,6 +34,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
     - name: Extract chart name
+      id: helm-chart-catch
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
       run: |
         echo "CHART_VERSION=$(grep 'version:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_ENV}
@@ -42,8 +43,8 @@ jobs:
     - name: Print chart name
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
       run: |
-        echo Chart name $CHART_NAME
-        echo Chart version $CHART_VERSION
+        echo Chart name: ${{ steps.helm-chart-catch.outputs.CHART_NAME }}
+        echo Chart version: ${{ steps.helm-chart-catch.outputs.CHART_VERSION }}
 
     - name: Lint helm
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
