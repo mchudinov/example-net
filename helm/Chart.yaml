@@ -3,7 +3,7 @@ name: example-net-helm
 description: A Helm chart for example-net application
 type: application
 # This is the Helm chart version
-version: 0.2.14
+version: 0.2.51
 # This is the version number of the Docker image being deployed.
 # It can be overriden in values.yaml    
-appVersion: "0.2.14"
+appVersion: "0.2.51"
