@@ -141,7 +141,7 @@ jobs:
             --yes \
             --tlog-upload=false
   
-      - name: Verify the images
+      - name: Verify the signature
         run: |
           cosign verify ${{needs.Check-Helm.outputs.registry_lowercase}}/${{ needs.Check-Helm.outputs.chart_name }}:${{ needs.Check-Helm.outputs.chart_version }} \
             --certificate-identity-regexp '.+github.com\/${{ github.repository_owner }}.+' \

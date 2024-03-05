@@ -95,7 +95,7 @@ jobs:
           --yes \
           --tlog-upload=false
 
-    - name: Verify the images
+    - name: Verify the signature
       run: |
         cosign verify ${{needs.Build-and-Push-Docker.outputs.registry_lowercase}}/${{ env.IMAGE_NAME }}@${{needs.Build-and-Push-Docker.outputs.docker_image_digest}} \
           --certificate-identity-regexp '.+github.com\/${{ github.repository_owner }}.+' \
