@@ -128,22 +128,6 @@ When start application from Visual Studion this environment variable is configur
         "Formatter": "Serilog.Formatting.Compact.CompactJsonFormatter, Serilog.Formatting.Compact"
       },
       {
-        "Name": "Debug",
-        "Formatter": "Serilog.Formatting.Compact.CompactJsonFormatter, Serilog.Formatting.Compact"
-      },
-      {
-        "Name": "Seq",
-        "Args": { "serverUrl": "http://localhost:5341" },
-        "Formatter": "Serilog.Formatting.Compact.CompactJsonFormatter, Serilog.Formatting.Compact"
-      },
-      {
-        "Name": "UdpSyslog",
-        "Args": {
-          "host": "127.0.0.1",
-          "port": 514
-        }
-      },
-      {
         "Name": "Elasticsearch",
         "Args": {
           "nodeUris": "https://elastic-mp-platform-sandbox.es.westeurope.azure.elastic-cloud.com",
