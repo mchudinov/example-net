@@ -55,7 +55,7 @@ jobs:
 
     - name: Lint helm
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
-      run: helm lint --strict
+      run: helm lint . --strict
       
     - name: Create a test k3d cluster for dry-run install
       uses: AbsaOSS/k3d-action@v2
