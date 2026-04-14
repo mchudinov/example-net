@@ -13,7 +13,7 @@ env:
   GHCR_USERNAME: ${{ github.actor }}
   GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }} 
   OIDC_ISSUER: https://token.actions.githubusercontent.com
-  BRANCH: master
+  BRANCH: main
   
 jobs:
   Build-and-Push-Docker:

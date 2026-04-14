@@ -6,10 +6,10 @@ on:
     workflows: [Build-Docker]
     types: [completed]    
   push:
-    branches: [master]
+    branches: [main]
     paths: ['helm/**']      
   pull_request:
-    branches: [master]
+    branches: [main]
     paths: ['helm/**']
 
 env:
