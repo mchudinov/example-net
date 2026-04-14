@@ -31,7 +31,7 @@ jobs:
       registry_lowercase: ${{ steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE }}      
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Helm installation
       uses: azure/setup-helm@v3
@@ -98,7 +98,7 @@ jobs:
       packages: write
 
     steps:      
-      - uses: actions/checkout@v4    
+      - uses: actions/checkout@v6    
 
       - name: Helm installation
         uses: azure/setup-helm@v3
@@ -110,7 +110,7 @@ jobs:
         run: helm package ./
 
       - name: Login to GHCR using Helm
-        run: echo ${{ env.GHCR_PASSWORD }}  | helm registry login ${{ env.REGISTRY }} --username ${{ env.GHCR_USERNAME }} --password-stdin
+        run: echo ${{ env.GHCR_PASSWORD }}  | helm registry login ghcr.io --username ${{ env.GHCR_USERNAME }} --password-stdin
 
       - name: Publish chart to GHCR
         working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
@@ -135,11 +135,16 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@main
 
+      - name: Create signing config without Rekor
+        run: |
+          curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
+            | jq 'del(.rekorTlogUrls)' > "$RUNNER_TEMP/signing-config-no-tlog.json"         
+
       - name: Sign the chart
         run: |
           cosign sign ${{needs.Check-Helm.outputs.registry_lowercase}}/${{ needs.Check-Helm.outputs.chart_name }}:${{ needs.Check-Helm.outputs.chart_version }} \
             --yes \
-            --tlog-upload=false
+            --signing-config "$RUNNER_TEMP/signing-config-no-tlog.json"
   
       - name: Verify the signature
         run: |

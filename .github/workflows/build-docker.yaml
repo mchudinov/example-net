@@ -29,7 +29,7 @@ jobs:
       registry_lowercase: ${{ steps.docker-image-catch.outputs.REGISTRY_LOWERCASE }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Extract metadata (tags, labels) for Docker
       id: meta
@@ -91,11 +91,16 @@ jobs:
     - name: Install cosign
       uses: sigstore/cosign-installer@main
 
+    - name: Create signing config without Rekor
+      run: |
+        curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
+          | jq 'del(.rekorTlogUrls)' > "$RUNNER_TEMP/signing-config-no-tlog.json"        
+
     - name: Sign the image
       run: |
         cosign sign ${{needs.Build-and-Push-Docker.outputs.registry_lowercase}}/${{ env.IMAGE_NAME }}@${{needs.Build-and-Push-Docker.outputs.docker_image_digest}} \
           --yes \
-          --tlog-upload=false
+          --signing-config "$RUNNER_TEMP/signing-config-no-tlog.json"
 
     - name: Verify the signature
       run: |
@@ -112,7 +117,7 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Print Docker image version
       run: echo "Docker image version ${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}"
