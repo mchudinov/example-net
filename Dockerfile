@@ -2,10 +2,11 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
 WORKDIR /App
 
 COPY . ./
-RUN dotnet restore
+# Restore and publish only the app project: the test project must never reach the image
+RUN dotnet restore ExampleNet/ExampleNet.csproj
 
 # Build and publish a release
-RUN dotnet publish -c Release -o out
+RUN dotnet publish ExampleNet/ExampleNet.csproj -c Release -o out
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled

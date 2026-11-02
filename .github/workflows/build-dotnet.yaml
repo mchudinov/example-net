@@ -1,0 +1,63 @@
+name: Build-Dotnet
+
+on:
+  workflow_dispatch:
+  # Build-Docker calls this workflow as its release gate; path filters do not apply to calls.
+  workflow_call:
+  push:
+    branches: [main]
+    paths:
+      - 'ExampleNet/**'
+      - 'ExampleNetTests/**'
+      - 'ExampleNet.sln'
+      - 'global.json'
+      - '.github/workflows/build-dotnet.yaml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ExampleNet/**'
+      - 'ExampleNetTests/**'
+      - 'ExampleNet.sln'
+      - 'global.json'
+      - '.github/workflows/build-dotnet.yaml'
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  CONFIGURATION: Release
+
+jobs:
+  Build-and-Test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore -c ${{ env.CONFIGURATION }}
+
+    # global.json selects Microsoft.Testing.Platform; --report-gh writes the job summary.
+    # Zero discovered tests exits with code 8 and fails this step.
+    - name: Test
+      run: >-
+        dotnet test --no-build -c ${{ env.CONFIGURATION }}
+        --report-trx
+        --coverage --coverage-output-format cobertura
+        --report-gh
+
+    - name: Upload test results
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: TestResults
+        path: TestResults/

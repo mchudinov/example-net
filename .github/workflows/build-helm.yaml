@@ -23,6 +23,8 @@ env:
 
 jobs:
   Check-Helm:
+    # After a Build-Docker run, publish only if that run succeeded ("completed" also fires on failure).
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
     outputs:

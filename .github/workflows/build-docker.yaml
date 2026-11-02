@@ -16,7 +16,14 @@ env:
   BRANCH: main
   
 jobs:
+  # Release gate: build and test the tagged source first; every later job depends on it.
+  Test:
+    uses: ./.github/workflows/build-dotnet.yaml
+    permissions:
+      contents: read
+
   Build-and-Push-Docker:
+    needs: Test
     runs-on: ubuntu-latest
 
     permissions:
@@ -138,7 +145,7 @@ jobs:
 
     - name: Lint helm
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
-      run: helm lint --strict
+      run: helm lint . --strict
 
     - name: Commit chart version change
       uses: planetscale/ghcommit-action@v0.1.33

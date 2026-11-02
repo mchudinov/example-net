@@ -17,7 +17,7 @@ Delegate all C# work to the `dotnet-developer` subagent (`.claude/agents/dotnet-
 Helm, Dockerfile, workflow and documentation changes stay in the main session.
 
 - **Branching.** The agent creates a local `agent/<slug>` branch and commits there. It never pushes or opens PRs unless asked. Afterwards the working tree is left on that branch.
-- **Target framework.** The repo targets `net10.0`, which matches the agent's .NET 10 baseline. The Dockerfile's `sdk:10.0` build image and `aspnet:10.0-noble-chiseled` runtime image must change together with the target framework.
+- **Target framework.** The repo targets `net10.0`, which matches the agent's .NET 10 baseline. Three things must change together with the target framework: the Dockerfile's `sdk:10.0` build image, its `aspnet:10.0-noble-chiseled` runtime image, and the SDK floor in `global.json`.
 - **Chart changes.** If a C# change needs a matching chart change, include the chart change in the same brief so both land in one commit. Example: a new `Settings` value that needs an env var in `helm/templates/deployment.yaml`.
 
 ## Commands
@@ -26,8 +26,9 @@ Run from the repo root unless noted.
 
 ```sh
 dotnet build                                   # output: ExampleNet/bin/<Debug|Release>/net10.0/
-dotnet test                                    # MSTest, project ExampleNetTests
-dotnet test --filter "FullyQualifiedName~SettingsTests.SettingsTest"   # single test
+dotnet test                                    # MSTest.Sdk project ExampleNetTests, on Microsoft.Testing.Platform
+dotnet test --filter "FullyQualifiedName~SettingsTests.SettingsTest"   # single test; a filter matching nothing exits 8
+dotnet test --coverage --coverage-output-format cobertura --report-trx  # results in TestResults/ (gitignored)
 dotnet run --project ExampleNet                # launch profile sets DOTNET_ENVIRONMENT=local
 
 docker build -t example-net-docker .
@@ -39,6 +40,16 @@ helm template t . --set elastic.log.enabled=true --set keyvault.enabled=true   #
 ```
 
 The README's `docker run --publish 50001:8080` example is wrong: the container listens on 50001, so publish `<host>:50001`.
+
+**Test runner.**
+- `global.json` does two things:
+  - It selects Microsoft.Testing.Platform as the `dotnet test` runner. Without that setting, `dotnet test` on the .NET 10 SDK fails for an `MSTest.Sdk` project, so change and revert `ExampleNetTests.csproj` and `global.json` together.
+  - It requires a 10.0 SDK: at least 10.0.100, with the newest installed 10.0 SDK used (`latestFeature`).
+- VSTest-only options such as `--collect` are rejected. For coverage, use `--coverage`.
+
+**Container build.**
+- The Dockerfile restores and publishes only `ExampleNet/ExampleNet.csproj`, so no test files reach the image.
+- The test project also sets `IsPublishable=false`, so a solution-level `dotnet publish` skips it.
 
 ## Configuration flow
 
@@ -67,8 +78,19 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
 
 ## CI/CD and versioning (`.github/workflows/`)
 
-1. Pushing a `v*` tag runs **Build-Docker**. It builds and pushes `ghcr.io/<owner>/example-net-docker:<version>` and signs it with cosign (keyless, no Rekor). It then has a bot rewrite `helm/Chart.yaml` `version` and `appVersion` to the tag version and commit to `main`.
-2. **Build-Helm** runs when Build-Docker completes, and on pushes/PRs touching `helm/**`. Its steps:
+1. **Build-Dotnet** runs on pushes and PRs to `main` that touch any of these paths:
+   - `ExampleNet/**`
+   - `ExampleNetTests/**`
+   - `ExampleNet.sln`
+   - `global.json`
+   - its own workflow file
+
+   It runs `dotnet restore`, `dotnet build -c Release` and `dotnet test`, then uploads `TestResults/` (TRX and cobertura) as an artifact. `--report-gh` writes the test summary to the run page. Inline annotations do not come through `dotnet test`, so look in the summary for failures.
+2. Pushing a `v*` tag runs **Build-Docker**. Its first job, `Test`, calls Build-Dotnet as a release gate. Everything after it runs only if the tests pass:
+   - build and push `ghcr.io/<owner>/example-net-docker:<version>`;
+   - sign it with cosign (keyless, no Rekor);
+   - have a bot rewrite `helm/Chart.yaml` `version` and `appVersion` to the tag version and commit to `main`.
+3. **Build-Helm** runs when Build-Docker completes, and on pushes/PRs touching `helm/**`. After a Build-Docker run, it continues only if that run succeeded. Build-Helm finds Build-Docker by name, so don't rename that workflow. Its steps:
    - `helm lint . --strict`
    - install into a k3d cluster
    - Fairwinds Polaris audit with `.github/polaris-config.yaml`; fails on any "danger" finding or a score below 90
