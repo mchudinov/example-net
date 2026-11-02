@@ -1,7 +1,6 @@
 ﻿using Serilog;
 using Serilog.Events;
 using Serilog.Debugging;
-using Elastic.Apm.Extensions.Hosting;
 using System.Collections;
 
 namespace ExampleNet
@@ -62,6 +61,7 @@ namespace ExampleNet
                         services.AddHostedService<TimedHostedService>();
                         services.AddSingleton<StartupReadyCheck>();
                         services.AddHealthChecks().AddCheck<StartupReadyCheck>("StartupReadyCheck");
+                        services.AddElasticApm();
                     })
                     .ConfigureWebHostDefaults(webBuilder =>
                     {
@@ -80,8 +80,6 @@ namespace ExampleNet
                             appBuilder.UseHealthChecks("/livez");
                         });
                     });
-
-                hostBuilder.UseElasticApm();
 
                 using var host = hostBuilder.Build();
 

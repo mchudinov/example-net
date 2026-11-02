@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A minimal .NET 8 generic-host app (`ExampleNet`). It serves as a reference service for building, signing, and deploying to Kubernetes via Docker + Helm. It does no real work. A timer writes log lines at a random level, and Kestrel serves `/` (returns `Ok`) plus the health endpoints `/healthz`, `/readyz` and `/livez`, all on port **50001**.
+A minimal .NET 10 generic-host app (`ExampleNet`). It serves as a reference service for building, signing, and deploying to Kubernetes via Docker + Helm. It does no real work. A timer writes log lines at a random level, and Kestrel serves `/` (returns `Ok`) plus the health endpoints `/healthz`, `/readyz` and `/livez`, all on port **50001**.
 
 ## C# development goes to the `dotnet-developer` subagent
 
@@ -17,7 +17,7 @@ Delegate all C# work to the `dotnet-developer` subagent (`.claude/agents/dotnet-
 Helm, Dockerfile, workflow and documentation changes stay in the main session.
 
 - **Branching.** The agent creates a local `agent/<slug>` branch and commits there. It never pushes or opens PRs unless asked. Afterwards the working tree is left on that branch.
-- **Target framework.** Its definition says ".NET 10", but this repo targets `net8.0` and the Dockerfile pins the 8.0 `sdk` and `aspnet` images. Tell it not to retarget unless the task is an upgrade.
+- **Target framework.** The repo targets `net10.0`, which matches the agent's .NET 10 baseline. The Dockerfile's `sdk:10.0` build image and `aspnet:10.0-noble-chiseled` runtime image must change together with the target framework.
 - **Chart changes.** If a C# change needs a matching chart change, include the chart change in the same brief so both land in one commit. Example: a new `Settings` value that needs an env var in `helm/templates/deployment.yaml`.
 
 ## Commands
@@ -25,7 +25,7 @@ Helm, Dockerfile, workflow and documentation changes stay in the main session.
 Run from the repo root unless noted.
 
 ```sh
-dotnet build                                   # output: ExampleNet/bin/<Debug|Release>/net8.0/
+dotnet build                                   # output: ExampleNet/bin/<Debug|Release>/net10.0/
 dotnet test                                    # MSTest, project ExampleNetTests
 dotnet test --filter "FullyQualifiedName~SettingsTests.SettingsTest"   # single test
 dotnet run --project ExampleNet                # launch profile sets DOTNET_ENVIRONMENT=local
@@ -38,13 +38,13 @@ helm lint . --strict
 helm template t . --set elastic.log.enabled=true --set keyvault.enabled=true   # inspect rendered env wiring
 ```
 
-The README contains some outdated details. The real target framework is net8.0, not net7.0. Its `docker run --publish 50001:8080` example is wrong: the container listens on 50001, so publish `<host>:50001`.
+The README's `docker run --publish 50001:8080` example is wrong: the container listens on 50001, so publish `<host>:50001`.
 
 ## Configuration flow
 
 - `Program.Main` builds its **own** `ConfigurationBuilder`: `appsettings.json` → `appsettings.{DOTNET_ENVIRONMENT}.json` (optional) → environment variables. It then feeds that into the host. It keys on `DOTNET_ENVIRONMENT`, not `ASPNETCORE_ENVIRONMENT`.
 - `appsettings.local*.json` (the `local` and `localcontainer` environments) is gitignored. Create it locally; the README has full examples.
-- Logging is configured entirely from the `Serilog` section via `ReadFrom.Configuration`. Elastic APM is wired with `UseElasticApm()` and toggled by `ElasticApm:Enabled`.
+- Logging is configured entirely from the `Serilog` section via `ReadFrom.Configuration`. Elastic APM is registered with `services.AddElasticApm()` (no extra instrumentations) and toggled by `ElasticApm:Enabled`.
 - At startup the app logs every environment variable (Debug) and every resolved config key=value (Information). Secrets supplied through config will appear in the logs.
 - `Settings` gotchas:
   - `Settings.ShutdownTimeout` is never used. Host shutdown is hard-coded to 5s in `Program.cs`.
@@ -79,4 +79,4 @@ Do not hand-edit the `Chart.yaml` version fields; the tag drives them. Changes t
 
 ## OpenSpec
 
-The repo has an OpenSpec spec-driven workflow (`openspec/`, plus `/opsx:*` commands and `openspec-*` skills in `.claude/`). Both directories are currently untracked, and `openspec/specs/` is empty.
+The repo has an OpenSpec spec-driven workflow (`openspec/`, plus `/opsx:*` commands and `openspec-*` skills in `.claude/`). Main specs live in `openspec/specs/` (currently `service-runtime`), and finished changes go to `openspec/changes/archive/`.

@@ -45,7 +45,7 @@ Run the following command from the solution's directory:
 dotnet build --configuration Release
 ```
 
-The build result as an executable is available at ```<solution root>/ExampleNet/bin/<Debug|Release>/net7.0/```
+The build result as an executable is available at ```<solution root>/ExampleNet/bin/<Debug|Release>/net10.0/```
 
 ## Build container
 
