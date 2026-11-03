@@ -73,3 +73,10 @@ The container image SHALL start and serve its endpoints when run as a non-root u
 #### Scenario: Read-only, non-root container is healthy
 - **WHEN** the container image runs as user 1000:1000 with a read-only root filesystem and port 50001 published
 - **THEN** `GET /healthz` on the published port returns status 200
+
+### Requirement: Container image contains only the application
+The container image's application directory SHALL contain only the application's own publish output. It SHALL NOT contain test assemblies, test frameworks, test runners or code-coverage tooling.
+
+#### Scenario: Application directory has no test payload
+- **WHEN** the files under the image's application directory (`/App`) are listed
+- **THEN** none of them belongs to the test project, a test framework, a test runner or code-coverage tooling. For example, there are no `ExampleNetTests.*`, `MSTest*`, `testhost.*`, `Microsoft.TestPlatform.*`, `Microsoft.Testing.*`, `coverlet.*` or `Microsoft.CodeCoverage` entries

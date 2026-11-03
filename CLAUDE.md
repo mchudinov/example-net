@@ -101,4 +101,4 @@ Do not hand-edit the `Chart.yaml` version fields; the tag drives them. Changes t
 
 ## OpenSpec
 
-The repo has an OpenSpec spec-driven workflow (`openspec/`, plus `/opsx:*` commands and `openspec-*` skills in `.claude/`). Main specs live in `openspec/specs/` (currently `service-runtime`), and finished changes go to `openspec/changes/archive/`.
+The repo has an OpenSpec spec-driven workflow (`openspec/`, plus `/opsx:*` commands and `openspec-*` skills in `.claude/`). Main specs live in `openspec/specs/` (currently `service-runtime` and `ci-test-gate`), and finished changes go to `openspec/changes/archive/`.
