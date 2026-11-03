@@ -67,7 +67,7 @@ None.
   - Any environment that turned on Elastic logging or APM stops sending to Elastic once it runs a chart or image built from this change.
   - The chart no longer reads the Key Vault secrets `elasticapm-apikey` and `serilog-writeto-1-args-connectionglobalheaders`, or the managed identity configured for them.
   - Removing those Azure resources is out of scope.
-- **Released artifacts:** none change. Charts and images already published under `1.0.x` keep Elastic.
+- **Released artifacts:** none change. Charts and images already published, up to and including `1.1.0`, keep Elastic. The `v1.1.0` tag is at `c2f5226`, the commit before this change.
 - **Out of scope:**
   - the other logging packages (Seq, Syslog, Debug, Compact formatter);
   - the unused `Settings.ShutdownTimeout`;

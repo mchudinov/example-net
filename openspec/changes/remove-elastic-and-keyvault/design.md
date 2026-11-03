@@ -121,4 +121,4 @@ README, CLAUDE.md and OpenSpec files are edited in the main session.
    - It publishes nothing, because only a release publishes.
 2. Release with a new `v*` tag. Choose the version bump for the breaking chart change at tag time.
 3. Deployers remove the `elastic.*` and `keyvault.*` values before upgrading. If one of them is still set to `true`, `helm upgrade` fails with the guard's message and the running release stays unchanged.
-4. Rollback: install the previous chart version. Published `1.0.x` charts and images still contain Elastic.
+4. Rollback: install the previous chart version. Published charts and images up to and including `1.1.0` still contain Elastic.
