@@ -96,6 +96,8 @@ jobs:
 
   Build-and-Push-Helm:
     needs: Check-Helm
+    # Only a release (a successful Build-Docker run) publishes; push, PR and manual runs only check. Sign-Helm-Chart skips via needs.
+    if: github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
     
     permissions:

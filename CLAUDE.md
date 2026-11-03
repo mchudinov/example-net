@@ -34,7 +34,7 @@ dotnet run --project ExampleNet                # launch profile sets DOTNET_ENVI
 docker build -t example-net-docker .
 docker compose up                              # host 8080 -> container 50001
 
-# from helm/ (Helm 4 requires the path argument; the README/build-helm.sh form `helm lint --strict` fails)
+# from helm/ (Helm 4 requires the path argument; the README form `helm lint --strict` fails)
 helm lint . --strict
 helm template t . --set elastic.log.enabled=true --set keyvault.enabled=true   # inspect rendered env wiring
 ```
@@ -90,12 +90,17 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
    - build and push `ghcr.io/<owner>/example-net-docker:<version>`;
    - sign it with cosign (keyless, no Rekor);
    - have a bot rewrite `helm/Chart.yaml` `version` and `appVersion` to the tag version and commit to `main`.
-3. **Build-Helm** runs when Build-Docker completes, and on pushes/PRs touching `helm/**`. After a Build-Docker run, it continues only if that run succeeded. Build-Helm finds Build-Docker by name, so don't rename that workflow. Its steps:
-   - `helm lint . --strict`
-   - install into a k3d cluster
-   - Fairwinds Polaris audit with `.github/polaris-config.yaml`; fails on any "danger" finding or a score below 90
-   - push the chart to GHCR as OCI `example-net-helm`
-   - cosign-sign the chart
+3. **Build-Helm** runs in three situations: when Build-Docker completes, on pushes and PRs to `main` that touch `helm/**`, and on manual runs. After a Build-Docker run, it continues only if that run succeeded. Build-Helm finds Build-Docker by name, so don't rename that workflow.
+   - **Every run checks the chart:**
+     - `helm lint . --strict`
+     - install into a k3d cluster
+     - Fairwinds Polaris audit with `.github/polaris-config.yaml`; fails on any "danger" finding or a score below 90
+   - **Only a run that follows a successful Build-Docker (a release) publishes:**
+     - push the chart to GHCR as OCI `example-net-helm`
+     - cosign-sign the chart
+
+     Pushes, PRs and manual runs publish nothing. So a released chart version is never overwritten, even though `main`'s chart can get ahead of the last release.
+   - **If a release's chart publishing fails,** fix the cause and push the next patch tag. A manual run can't publish.
 
 Do not hand-edit the `Chart.yaml` version fields; the tag drives them. Changes to the chart's securityContext, probes or resources must keep the Polaris audit passing.
 
