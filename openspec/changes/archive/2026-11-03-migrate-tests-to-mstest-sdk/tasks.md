@@ -117,24 +117,33 @@
   This is the spec scenario "Failing test fails the check". Close the PR and delete the branch afterwards.
 
   **Not run** (user decision, 2026-11-03: work directly on `main`, no branches or PRs). A failing test can't be pushed to `main` without breaking it. Indirect evidence: the planning spike ran the same `dotnet test … --report-gh` command on Linux (design, spike #11). With a failing test, it exited 2 and the job summary named the test.
-- [ ] 6.3 On the next PR, or push to `main`, that changes only `helm/**` files, verify that no `Build-Dotnet` run is triggered (spec scenario: Unrelated change does not trigger a run). The `push` and `pull_request` triggers use the same `paths`. Until such a change happens, task 3.1's `paths` check covers this structurally.
+- [x] 6.3 On the next PR, or push to `main`, that changes only `helm/**` files, verify that no `Build-Dotnet` run is triggered (spec scenario: Unrelated change does not trigger a run). The `push` and `pull_request` triggers use the same `paths`. Until such a change happens, task 3.1's `paths` check covers this structurally.
 
   **Pending at archive** (2026-11-03): no push to `main` has changed only `helm/**` files yet, so the live check hasn't happened. The user chose to archive anyway. Structural evidence on `main`: both the `push` and `pull_request` triggers of `build-dotnet.yaml` list only the five `paths` from 3.1, and none of them matches `helm/**`.
+
+  *Still pending after archive (2026-11-03):* the bot's `Chart.yaml` commits (`0d09ac4`, `55671a3`) change only `helm/Chart.yaml`, and no `Build-Dotnet` run followed them. They don't count as evidence, though. The bot pushes with `GITHUB_TOKEN`, and GitHub doesn't start workflows from such pushes: `Build-Helm`'s own `push: helm/**` trigger didn't fire for them either. A push of a `helm/**`-only change by a user is still needed.
+
+  *Observed (2026-11-03, via change `helm-publish-only-on-release`):* the user pushed commit `2d3dc12` on its own (`0efab1b..2d3dc12`). It changes only `helm/build-helm.sh`. It started only `Build-Helm` run 41658988349 (event `push`) and **no** `Build-Dotnet` run. The pull-request half is still not observed, because this repository takes no PRs. It uses the same `paths` list.
 - [x] 6.4 After merge, verify that `Build-Dotnet` runs on the push to `main` and succeeds.
 
   *Observed:* `main` was fast-forwarded to `d4f63c6` and pushed on 2026-11-03, and GitHub marked PR #1 as merged. `Build-Dotnet` run 41568738323 (event `push`) succeeded. It was the only workflow triggered by that commit.
-- [ ] 6.5 On the next `v*` tag from a green `main`, verify:
+- [x] 6.5 On the next `v*` tag from a green `main`, verify:
   - `Build-Docker` runs `Test` first and then builds, pushes and signs the image;
   - the bot commits the `Chart.yaml` bump;
   - `Build-Helm` publishes and signs the chart.
 
   This is the spec scenario "Passing tests release as before".
 
-  **Pending at archive** (2026-11-03): the repository has no `v*` tags yet, and neither `Build-Docker` nor `Build-Helm` has run. The user chose to archive anyway. Structural evidence on `main`:
-  - `build-docker.yaml`: `Test` (`uses: ./.github/workflows/build-dotnet.yaml`) → `Build-and-Push-Docker` (`needs: Test`) → `Sign-Docker-Image` and `Update-Chart-Version` (`needs: Build-and-Push-Docker`, `helm lint . --strict`).
-  - `build-helm.yaml`: `Check-Helm` is gated on `workflow_run.conclusion == 'success'`, and `Build-and-Push-Helm` and `Sign-Helm-Chart` depend on it through `needs`.
-
-  Check this on the first release tag.
+  *Observed after archive (2026-11-03):*
+  - **`v1.0.0`** (the repository's first tag):
+    - `Build-Docker` run 41637210931 succeeded. Its jobs ran in this order: `Test / Build-and-Test`, then `Build-and-Push-Docker`, then `Update-Chart-Version` and `Sign-Docker-Image`.
+    - The bot committed the `Chart.yaml` bump to 1.0.0 (`0d09ac4`).
+    - `Build-Helm` run 41637458630 started after `Build-Docker` succeeded, as designed. `Check-Helm` then failed for a reason outside this change: `AbsaOSS/k3d-action@v2` installs k3d v5.4.6 by default, and k3d's floating `install.sh` now also downloads the release's `checksums.txt` (k3d-io/k3d#1653), which v5.4.6 doesn't have. This returned HTTP 404 and curl exit 22.
+    - Fixed in `15612c1` by pinning `k3d-version: v5.9.0`. The manual `Build-Helm` run 41639101061 then published and signed chart 1.0.0.
+  - **`v1.0.1`**, the full automatic path:
+    - `Build-Docker` run 41640417663 succeeded, and the bot committed `55671a3` (`Chart.yaml` 1.0.1).
+    - `Build-Helm` run 41640709665 (event `workflow_run`) succeeded, publishing and signing the chart.
+    - The user confirmed that both builds worked.
 - [ ] 6.6 *Optional; only after merge.* Verify the failing-release path live:
   1. Start a manual run (`workflow_dispatch`) of `Build-Docker` on a throwaway branch that contains a test which **certainly fails**.
   2. Verify that `Test` fails and that `Build-and-Push-Docker`, `Sign-Docker-Image` and `Update-Chart-Version` are skipped.
