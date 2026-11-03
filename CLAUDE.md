@@ -36,7 +36,7 @@ docker compose up                              # host 8080 -> container 50001
 
 # from helm/ (Helm 4 requires the path argument; the README form `helm lint --strict` fails)
 helm lint . --strict
-helm template t . --set elastic.log.enabled=true --set keyvault.enabled=true   # inspect rendered env wiring
+helm template t .                              # inspect the rendered manifests and env wiring
 ```
 
 The README's `docker run --publish 50001:8080` example is wrong: the container listens on 50001, so publish `<host>:50001`.
@@ -55,7 +55,7 @@ The README's `docker run --publish 50001:8080` example is wrong: the container l
 
 - `Program.Main` builds its **own** `ConfigurationBuilder`: `appsettings.json` → `appsettings.{DOTNET_ENVIRONMENT}.json` (optional) → environment variables. It then feeds that into the host. It keys on `DOTNET_ENVIRONMENT`, not `ASPNETCORE_ENVIRONMENT`.
 - `appsettings.local*.json` (the `local` and `localcontainer` environments) is gitignored. Create it locally; the README has full examples.
-- Logging is configured entirely from the `Serilog` section via `ReadFrom.Configuration`. Elastic APM is registered with `services.AddElasticApm()` (no extra instrumentations) and toggled by `ElasticApm:Enabled`.
+- Logging is configured entirely from the `Serilog` section via `ReadFrom.Configuration`. A `WriteTo` or `Enrich` entry naming a method from a package that isn't referenced doesn't fail startup. Serilog skips it and writes `Unable to find a method called ...` to stderr.
 - At startup the app logs every environment variable (Debug) and every resolved config key=value (Information). Secrets supplied through config will appear in the logs.
 - `Settings` gotchas:
   - `Settings.ShutdownTimeout` is never used. Host shutdown is hard-coded to 5s in `Program.cs`.
@@ -67,13 +67,11 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
 
 ## Helm chart (`helm/`)
 
-- **Values → app config.** `templates/deployment.yaml` maps chart values to .NET env vars using the `Section__Key` convention (`Settings__TimeSpan`, `Serilog__MinimumLevel`, `ElasticApm__*`). Of the `Settings` values, only `TimeSpan` is exposed.
-- **Elasticsearch sink.** It is injected as `Serilog__WriteTo__1__*`. That index assumes `appsettings.json` defines exactly one sink (Console) at index 0. Adding a sink there shifts the index, so update the chart to match.
-- **Key Vault** (`keyvault.enabled`):
-  - `secretprovider.yaml` (Azure CSI) syncs Key Vault objects into k8s secrets named `elasticapm-apikey` and `serilog-writeto-1-args-connectionglobalheaders`.
-  - The deployment then emits the same env var names a second time from those secrets. Key Vault values override `values.yaml` only because the later entry wins.
-  - Secret names must match across both templates.
-- **Argo Rollouts** (`rollout.enabled`). This swaps the Deployment for `rollout-bluegreen.yaml` plus preview service/ingress. `rollout-canary.yaml` is an empty stub. The blue-green template is out of sync with `deployment.yaml`: it uses containerPort 8080, probes `/`, and has no env vars or Key Vault mounts. Changes to `deployment.yaml` are not reflected there.
+- **Values → app config.** `templates/deployment.yaml` maps chart values to .NET env vars using the `Section__Key` convention. It emits only two: `Settings__TimeSpan` (from `settings.timeSpan`) and `Serilog__MinimumLevel` (from `settings.logLevel`). Of the `Settings` values, only `TimeSpan` is exposed.
+- **Removed-values guard.** `templates/removed-values.yaml` renders no manifest. It fails `helm template`, `install` and `upgrade` when `elastic.log.enabled`, `elastic.apm.enabled` or `keyvault.enabled` is true. Those features (Elasticsearch logging, Elastic APM and Azure Key Vault via CSI) were removed.
+  - `helm lint` only logs the `fail` at INFO level, so test the guard with `helm template`.
+  - Delete the file once deployers have migrated.
+- **Argo Rollouts** (`rollout.enabled`). This swaps the Deployment for `rollout-bluegreen.yaml` plus preview service/ingress. `rollout-canary.yaml` is an empty stub. The blue-green template is out of sync with `deployment.yaml`: it uses containerPort 8080, probes `/`, and has no env vars. Changes to `deployment.yaml` are not reflected there.
 - **Cluster prerequisites.** The chart expects priority class `user-normal` and pull secret `container-registry-pullsecret` in the target namespace.
 
 ## CI/CD and versioning (`.github/workflows/`)

@@ -13,7 +13,6 @@ Eample .NET application
     - [GitHub actions](#github-actions)
   - [Configuration](#configuration)
     - [Logging](#logging)
-    - [Elastic APM](#elastic-apm)
     - [Configuration examples](#configuration-examples)
       - [Local configuration](#local-configuration)
       - [Docker config](#docker-config)
@@ -91,11 +90,6 @@ The following logging options are supported:
 - Debug window in Visual Studio
 - Seq
 - Syslog TCP/UDP
-- Elasticsearch
-
-### Elastic APM
-
-Elastic APM module can be switched on and off with *ElasticApm:Enabled* option.
 
 ### Configuration examples
 
@@ -112,31 +106,15 @@ When start application from Visual Studion this environment variable is configur
     "TimeSpan": 2,
     "ShutdownTimeout": 10
   },
-  "ElasticApm": {
-    "ServerUrls": "https://elastic-mp-platform-sandbox.apm.westeurope.azure.elastic-cloud.com",
-    "ServiceName": "example-net",
-    "Environment": "Development/SOL/VFY/PROD",
-    "ApiKey": "xxx==",
-    "MetricsInterval": "2m",
-    "Enabled": true
-  },
   "Serilog": {
     "MinimumLevel": "Information",
     "WriteTo": [
       {
         "Name": "Console",
         "Formatter": "Serilog.Formatting.Compact.CompactJsonFormatter, Serilog.Formatting.Compact"
-      },
-      {
-        "Name": "Elasticsearch",
-        "Args": {
-          "nodeUris": "https://elastic-mp-platform-sandbox.es.westeurope.azure.elastic-cloud.com",
-          "indexFormat": "example-net-{0:yyyy}",
-          "connectionGlobalHeaders": "Authorization=Basic login:passwordbase64="
-        }
       }
     ],
-    "Enrich": [ "FromLogContext", "WithMachineName", "WithElasticApmCorrelationInfo" ]
+    "Enrich": [ "FromLogContext", "WithMachineName" ]
   }
 }
 ```
@@ -156,31 +134,15 @@ When start application from Visual Studion this environment variable is configur
     "TimeSpan": 2,
     "ShutdownTimeout": 10
   },
-  "ElasticApm": {
-    "ServerUrls": "https://elastic-mp-platform-sandbox.apm.westeurope.azure.elastic-cloud.com",
-    "ServiceName": "example-net",
-    "Environment": "Development",
-    "ApiKey": "xxx==",
-    "MetricsInterval": "2m",
-    "Enabled": true
-  },
   "Serilog": {
     "MinimumLevel": "Information",
     "WriteTo": [
       {
         "Name": "Console",
         "Formatter": "Serilog.Formatting.Compact.CompactJsonFormatter, Serilog.Formatting.Compact"
-      },
-      {
-        "Name": "Elasticsearch",
-        "Args": {
-          "nodeUris": "https://elastic-mp-platform-sandbox.es.westeurope.azure.elastic-cloud.com",
-          "indexFormat": "example-net-{0:yyyy}",
-          "connectionGlobalHeaders": "Authorization=Basic xxx="
-        }
       }
     ],
-    "Enrich": [ "FromLogContext", "WithMachineName", "WithElasticApmCorrelationInfo" ]
+    "Enrich": [ "FromLogContext", "WithMachineName" ]
   },
   "Kestrel": {
     "EndPoints": {
@@ -240,29 +202,7 @@ Application's configuration can be done using the custom *--values values.yaml*
 settings:
   timeSpan: 5
   logLevel: Information
-
-elastic:
-  log:
-    enabled: true
-    nodeUris: "https://elastic-mp-platform-sandbox.es.westeurope.azure.elastic-cloud.com"
-    indexFormat: "example-net-{0:yyyy}"
-    connectionGlobalHeaders: "Authorization=Basic login:passwordbase64="
-  apm:
-    enabled: true
-    serverUrls: "https://elastic-mp-platform-sandbox.apm.westeurope.azure.elastic-cloud.com"
-    serviceName: "example-net"
-    environment: prod
-    metricsInterval: 2m
-    apiKey: "dummy=="
-    
-keyvault:
-  enabled: false
-  name: kv-mp-example-net-sol
-  userAssignedIdentityID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-  tenantId: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```  
-
-**NB!** Values from a Key Vault has preference over values from *values.yaml* config file.
 
 ##### Install the remote Helm Chart
 
