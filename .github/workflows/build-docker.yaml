@@ -36,7 +36,7 @@ jobs:
       registry_lowercase: ${{ steps.docker-image-catch.outputs.REGISTRY_LOWERCASE }}
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Extract metadata (tags, labels) for Docker
       id: meta
@@ -124,7 +124,7 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Print Docker image version
       run: echo "Docker image version ${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}"
