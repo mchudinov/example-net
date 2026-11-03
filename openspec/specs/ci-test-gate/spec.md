@@ -4,6 +4,8 @@
 
 Ensures that changes to the example-net application or its tests are built and tested automatically before and after they reach `main`, and that a release never publishes artifacts built from source whose tests fail.
 
+Only a release publishes the Helm chart. Other runs check it, so a published chart version is never replaced.
+
 ## Requirements
 
 ### Requirement: Changes to application or test code are built and tested automatically
