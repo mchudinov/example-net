@@ -4,7 +4,7 @@
 
 # helm repo update
 
-helm lint --strict
+helm lint . --strict
 helm install --dry-run --debug --generate-name ./
 helm package ./
 mv example-net-helm* ./chart
