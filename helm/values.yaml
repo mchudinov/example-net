@@ -14,26 +14,6 @@ settings:
   timeSpan: 5
   logLevel: Information
 
-elastic:
-  log:
-    enabled: false
-    nodeUris: "https://example.com"
-    indexFormat: "example-net-{0:yyyy}"
-    connectionGlobalHeaders: ""
-  apm:
-    enabled: false
-    serverUrls: "https://example.com"
-    serviceName: "example-net"
-    environment: development
-    metricsInterval: "2m"
-    apiKey: ""
-    
-keyvault:
-  enabled: false
-  name: kv-mp-example-net-sol
-  userAssignedIdentityID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx    # appid for example azurekeyvaultsecretsprovider-aks-mp-mgmt-cl1-sol
-  tenantId: 5d0227ad-3bcc-4106-8cf3-16e735f3b4c4
-
 priorityClassName: user-normal
 
 serviceAccount:

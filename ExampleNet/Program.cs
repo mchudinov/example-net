@@ -61,7 +61,6 @@ namespace ExampleNet
                         services.AddHostedService<TimedHostedService>();
                         services.AddSingleton<StartupReadyCheck>();
                         services.AddHealthChecks().AddCheck<StartupReadyCheck>("StartupReadyCheck");
-                        services.AddElasticApm();
                     })
                     .ConfigureWebHostDefaults(webBuilder =>
                     {

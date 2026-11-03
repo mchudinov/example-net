@@ -1,0 +1,5 @@
+{{- /* Remove once deployers have migrated off the removed elastic.* and keyvault.* values. */ -}}
+{{- $v := .Values.AsMap -}}
+{{- if or (dig "elastic" "log" "enabled" false $v) (dig "elastic" "apm" "enabled" false $v) (dig "keyvault" "enabled" false $v) -}}
+{{- fail "elastic.* and keyvault.* were removed: Elastic logging, Elastic APM and Key Vault are no longer supported. Remove these values." -}}
+{{- end -}}
