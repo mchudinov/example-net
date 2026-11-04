@@ -212,25 +212,39 @@ These tasks need a running Docker engine. If none is available, record 2.3 to 2.
     - The Docker image and Docker Compose sections said to run "from the solution's directory" or "from solution's root directory". That is now `src/`, where both commands would fail. They now say "from the repository root".
     - The local settings examples now name `src/ExampleNet/` as the location, and what Docker builds do with each file.
   - **Left as is:** the `docker run --publish 50001:8080` example (a non-goal).
-- [ ] 4.3 Once the user approves, commit tasks 2.1, 2.2, 3.1, 4.1 and 4.2 as one main-session commit on `main`. Verify that `git log --oneline -2` shows the agent's commit (task 1.8) followed by this commit.
+- [x] 4.3 Once the user approves, commit tasks 2.1, 2.2, 3.1, 4.1 and 4.2 as one main-session commit on `main`. Verify that `git log --oneline -2` shows the agent's commit (task 1.8) followed by this commit.
 
   **Ask the user before pushing.**
 
+  *Result (2026-11-04):*
+  - **Approval:** the user approved the commit and the push. At the user's choice, the commit also includes this change's folder, `openspec/changes/restructure-source-layout/`. `ci-docker-build-check/` stays untracked.
+  - **Commit:** `0459911` on `main`, after the agent's `d146b5c`, as `git log --oneline -2` shows.
+  - **Push:** `origin/main` was still `24aaf8d` before the push. The first `git push` was rejected by GitHub with `Internal Server Error`; the retry pushed `24aaf8d..0459911`.
+  - **Not in the commit:** the edits to this file from 4.3 and 6.1 were made after the commit.
+
 ## 5. Developer environment (run by the user)
 
-- [ ] 5.1 In Visual Studio 2026, open `src/ExampleNet.slnx` and build. Verify:
+- [x] 5.1 In Visual Studio 2026, open `src/ExampleNet.slnx` and build. Verify:
   - Solution Explorer shows both projects.
   - Test Explorer finds `SettingsTests.SettingsTest`, and **Run All** passes it.
 
   If the user hasn't done this, record it as **not run**.
 
+  *Observed (user, 2026-11-04):* the user opened `src/ExampleNet.slnx` in Visual Studio 2026 and reported: "done all good".
+
 ## 6. Live verification (run by the user after pushing; record each check as **pending** until it is observed)
 
-- [ ] 6.1 On the push of the two commits, verify:
+- [x] 6.1 On the push of the two commits, verify:
   - `Build-Dotnet` runs and succeeds.
   - The `TestResults` artifact contains the `*.trx` and `*.cobertura.xml`. That proves D5 works on the runner.
 
   This run doesn't test the new filters: the push changes the workflow file itself and renames every project file, so the workflow would run with any filters.
+
+  *Observed (2026-11-04):* `Build-Dotnet` run 41813112059 (event `push`, `0459911`) succeeded, with every step green. It was the only workflow the push triggered.
+  - **Commands:** the run used `dotnet restore src/ExampleNet.slnx` and `dotnet build --no-restore -c Release src/ExampleNet.slnx`. The test step ran `dotnet test --no-build -c Release src/ExampleNet.slnx --results-directory /home/runner/work/example-net/example-net/TestResults --report-trx --coverage --coverage-output-format cobertura --report-gh`.
+  - **Warnings:** only the baseline CS8605 (`src/ExampleNet/TimedHostedService.cs(92,44)`).
+  - **Tests:** `Test run summary: Passed!`, total 1, succeeded 1.
+  - **Artifact:** `TestResults` (6775 bytes) holds `ExampleNetTests_net10.0_x64.trx`, `c9f7f482-….cobertura.xml`, and the TRX attachment copy of the cobertura in a subfolder. That is the same shape as the archived change's 6.1.
 - [ ] 6.2 Verify that the next push that changes only files under `src/` triggers `Build-Dotnet`.
 - [ ] 6.3 Verify that the next push that changes only files under `tests/` triggers `Build-Dotnet`.
 - [ ] 6.4 Verify that the next push by a user that changes only `helm/**` does **not** trigger `Build-Dotnet` (`ci-test-gate` scenario: Unrelated change does not trigger a run). The bot's `Chart.yaml` commits don't count, because pushes made with `GITHUB_TOKEN` start no workflows.
