@@ -70,26 +70,56 @@
   - **New CI/CD entry:** `Check-Docker` is item 2, between Build-Dotnet and Build-Docker; Build-Docker and Build-Helm renumbered to 3 and 4. It lists the triggers and paths and that it only builds (`push: false`, read-only, no login, no cache). It says it runs in parallel with Build-Dotnet, why `tests/**` and `helm/**` don't trigger it, and "Never name it `Build-Docker`".
   - **Container build note:** the root-level build-file rule now ends with "Add the file to `Check-Docker`'s `paths` as well".
   - **Checks:** `grep -n "Check-Docker" CLAUDE.md` finds both places (lines 73 and 112). CRLF line endings are kept. `git diff --stat` shows 18 insertions and 3 deletions.
-- [ ] 2.2 Once the user approves, commit tasks 1.1 and 2.1, plus this change's folder if the user wants it included, on `main`. Verify:
+- [x] 2.2 Once the user approves, commit tasks 1.1 and 2.1, plus this change's folder if the user wants it included, on `main`. Verify:
   - `git show --stat HEAD` lists only those files.
   - `git branch --show-current` prints `main`.
 
   **Ask the user before pushing.**
 
+  *Result (2026-11-04):*
+  - **Approval:** the user approved committing with the change folder included, and pushing.
+  - **Commit:** `ffc1343` on `main`. `git show --stat HEAD` lists only `.github/workflows/check-docker.yaml`, `CLAUDE.md` and the five files under `openspec/changes/ci-docker-build-check/`.
+  - **Push:** `origin/main` was at `9b28e47` before the push, and the push sent `9b28e47..ffc1343`.
+  - **Not in the commit:** this result and the edits to this file after 2.1.
+
 ## 3. Live verification (after pushing; record each check as **pending** until it is observed)
 
-- [ ] 3.1 On the push that adds the workflow, verify with `gh run list --commit <sha>` and the run log:
+- [x] 3.1 On the push that adds the workflow, verify with `gh run list --commit <sha>` and the run log:
   - `Check-Docker` runs (its own file is in its paths) and succeeds.
   - No `Build-Docker` or `Build-Helm` run belongs to that commit.
   - The build log shows no registry push.
+
+  *Observed (2026-11-04):* `Check-Docker` run 41881893007 (event `push`, `ffc1343`) succeeded. Job `Build-Image` passed checkout and "Build image (not pushed)".
+  - **Builder:** the log shows `building with "default" instance using docker driver`, the same builder as `Build-Docker`. The only compiler warning is the baseline CS8605.
+  - **Output:** the image ended as `naming to docker.io/library/example-net-docker:check`, a local name.
+  - **No push:** the log has 0 matches for `pushing layers`, `pushing manifest`, a `ghcr.io/…:` reference or `login succeeded`. The `"Direct push": true` line comes from the builder's feature list, not from anything the build did.
+  - **No other runs:** `gh run list --commit <full sha>` shows only this run, and no run of any workflow has started since.
+
+  **`gh run list --commit` needs the full SHA.** A short SHA silently returns no runs: `0459911` gives 0, its full SHA gives 1. Use `--commit "$(git rev-parse <sha>)"` in the checks below.
+
+  **Builder capabilities:** the feature list also shows `"Cache export": true`. The runner's default builder with the containerd image store can export a cache, so a later cache change wouldn't strictly need `setup-buildx`.
 - [ ] 3.2 On the next push that changes the `Dockerfile`, `.dockerignore`, `global.json` or `src/**`, verify that `Check-Docker` runs and succeeds (spec scenario "Image builds for a change to its build definition").
 
   If the push changes only `src/**`, also verify that `Build-Dotnet` runs. That also counts as the pending task 6.2 of the archived `restructure-source-layout`.
+
+  **Pending at archive** (2026-11-04): no push since `ffc1343` has changed these paths. The user chose to archive anyway. Structural evidence:
+  - the `push` paths list exactly these files (task 1.1);
+  - the first run, 3.1, already built the image successfully on the runner.
 - [ ] 3.3 On the next push that changes only `tests/**` or only `helm/**`, verify that **no** `Check-Docker` run is triggered (spec scenario "Change outside the image does not trigger an image build").
+
+  **Pending at archive** (2026-11-04): no push that changes only `tests/**` or only `helm/**` has happened since `ffc1343`. Structural evidence: neither `tests/**` nor `helm/**` is in the paths (task 1.1).
 - [ ] 3.4 For every `Check-Docker` run observed in 3.1 to 3.3, verify that no `Build-Helm` run follows it, and that no new image version appears for that commit (spec: the check publishes nothing).
+
+  **Pending at archive** (2026-11-04): it holds for the only run so far, 3.1. No `Build-Helm` run followed run 41881893007, and its log shows no registry push. The task stays open until the runs in 3.2 and 3.3 are observed.
 - [ ] 3.5 On the next `v*` tag, verify:
   - **No `Check-Docker` run** is started by the tag.
   - **`Build-Docker` runs as before:** the `Test` gate; build, push and sign; the bot's `Chart.yaml` bump; then `Build-Helm` publishes and signs the chart.
 
   This also covers the pending task 6.5 of the archived `restructure-source-layout`.
+
+  **Pending at archive** (2026-11-04): no `v*` tag has been pushed since `ffc1343`. Structural evidence:
+  - `branches: [main]` on the `push` trigger excludes tag pushes;
+  - `Build-Docker` is unchanged (task 1.5).
 - [ ] 3.6 Pull-request scenario ("Application change is image-build checked"): this repository takes no PRs, so record it as **not run**. Structural evidence: task 1.1 verifies that the `pull_request` trigger lists the same paths as `push`.
+
+  **Not run** (2026-11-04): the user works directly on `main` and opens no PRs. Structural evidence: in task 1.1, `diff` showed the `pull_request` path list is byte-identical to the `push` list.

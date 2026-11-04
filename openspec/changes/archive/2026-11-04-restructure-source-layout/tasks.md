@@ -253,7 +253,7 @@ These tasks need a running Docker engine. If none is available, record 2.3 to 2.
   **Pending at archive** (2026-11-04): no push since the move has changed only `tests/`. Structural evidence: both triggers list `tests/**` (task 3.1).
 - [ ] 6.4 Verify that the next push by a user that changes only `helm/**` does **not** trigger `Build-Dotnet` (`ci-test-gate` scenario: Unrelated change does not trigger a run). The bot's `Chart.yaml` commits don't count, because pushes made with `GITHUB_TOKEN` start no workflows.
 
-  **Pending at archive** (2026-11-04): no user push has changed only `helm/**` since the move. Related live evidence: the user's push `401d706` changed only files under `openspec/` and started **no** workflow (`gh run list --commit 401d706` is empty). That is an unrelated change in the sense of the `ci-test-gate` scenario, but not the `helm/**` case this task names.
+  **Pending at archive** (2026-11-04): no user push has changed only `helm/**` since the move. Related live evidence: the user's push `401d706` changed only files under `openspec/` and started **no** workflow: `gh run list --commit "$(git rev-parse 401d706)"` is empty. Corrected 2026-11-04 during `ci-docker-build-check`: this note first cited `gh run list --commit 401d706`, which is invalid evidence, because `--commit` silently matches nothing for a short SHA. Re-checked with the full SHA, the result is still no runs. That is an unrelated change in the sense of the `ci-test-gate` scenario, but not the `helm/**` case this task names.
 - [ ] 6.5 On the next `v*` tag, verify:
   - `Build-Docker`'s `Test` gate passes.
   - The image builds with the new Dockerfile, and is pushed and signed.
