@@ -1,0 +1,9 @@
+**/bin
+**/obj
+**/.vs
+.git
+TestResults
+tests
+helm
+openspec
+**/appsettings.local.json

@@ -11,8 +11,8 @@ A minimal .NET 10 generic-host app (`ExampleNet`). It serves as a reference serv
 Delegate all C# work to the `dotnet-developer` subagent (`.claude/agents/dotnet-developer.md`). Do not edit these files directly in the main session:
 
 - `*.cs`, `*.csproj`, `*.slnx`
-- `ExampleNet/appsettings*.json`
-- anything in `ExampleNetTests/`
+- `src/ExampleNet/appsettings*.json`
+- anything in `tests/ExampleNetTests/`
 
 Helm, Dockerfile, workflow and documentation changes stay in the main session.
 
@@ -24,14 +24,29 @@ Helm, Dockerfile, workflow and documentation changes stay in the main session.
 
 Run from the repo root unless noted.
 
-The solution is `ExampleNet.slnx` (the XML solution format). Keep it the only solution file at the root. The bare `dotnet` commands below find it automatically; with a second `.sln` or `.slnx` next to it they fail with `MSB1011`. To add a project, use `dotnet sln add <path/to/Project.csproj>`.
+**Layout.**
+- **Where things are:** the app is `src/ExampleNet/` and the tests are `tests/ExampleNetTests/`.
+- **The solution is `src/ExampleNet.slnx`** (the XML solution format). It lists both projects. The test project sits outside `src/`, at `../tests/...`.
+- **The repository root has no solution.** Bare `dotnet build` or `dotnet test` there fails with `MSB1003`. Name the solution, as in the commands below, or run the bare commands from `src/`.
+- **Keep `src/ExampleNet.slnx` the only solution file in `src/`.** With a second `.sln` or `.slnx` next to it, bare commands in `src/` fail with `MSB1011`. To add a project, run `dotnet sln src/ExampleNet.slnx add <path/to/Project.csproj>`.
+- **`global.json` stays at the root.** `dotnet` looks for it from the current folder upward, so it applies whether you run from the root, `src/` or `tests/`. Put any future `Directory.Build.props` at the root too, so it covers both `src/` and `tests/`.
+
+The `dotnet-developer` agent's restore, build and test loop is exactly:
 
 ```sh
-dotnet build                                   # output: ExampleNet/bin/<Debug|Release>/net10.0/
-dotnet test                                    # MSTest.Sdk project ExampleNetTests, on Microsoft.Testing.Platform
-dotnet test --filter "FullyQualifiedName~SettingsTests.SettingsTest"   # single test; a filter matching nothing exits 8
-dotnet test --coverage --coverage-output-format cobertura --report-trx  # results in TestResults/ (gitignored)
-dotnet run --project ExampleNet                # launch profile sets DOTNET_ENVIRONMENT=local
+dotnet restore src/ExampleNet.slnx
+dotnet build --no-restore src/ExampleNet.slnx
+dotnet test --no-build src/ExampleNet.slnx
+```
+
+Other commands:
+
+```sh
+dotnet build src/ExampleNet.slnx               # output: src/ExampleNet/bin/<Debug|Release>/net10.0/
+dotnet test src/ExampleNet.slnx                # MSTest.Sdk project tests/ExampleNetTests, on Microsoft.Testing.Platform
+dotnet test src/ExampleNet.slnx --filter "FullyQualifiedName~SettingsTests.SettingsTest"   # single test; a filter matching nothing exits 8
+dotnet test src/ExampleNet.slnx --coverage --coverage-output-format cobertura --report-trx  # results in TestResults/ (gitignored)
+dotnet run --project src/ExampleNet            # launch profile sets DOTNET_ENVIRONMENT=local
 
 docker build -t example-net-docker .
 docker compose up                              # host 8080 -> container 50001
@@ -45,18 +60,27 @@ The README's `docker run --publish 50001:8080` example is wrong: the container l
 
 **Test runner.**
 - `global.json` does two things:
-  - It selects Microsoft.Testing.Platform as the `dotnet test` runner. Without that setting, `dotnet test` on the .NET 10 SDK fails for an `MSTest.Sdk` project, so change and revert `ExampleNetTests.csproj` and `global.json` together.
+  - It selects Microsoft.Testing.Platform as the `dotnet test` runner. Without that setting, `dotnet test` on the .NET 10 SDK fails for an `MSTest.Sdk` project, so change and revert `tests/ExampleNetTests/ExampleNetTests.csproj` and `global.json` together.
   - It requires a 10.0 SDK: at least 10.0.100, with the newest installed 10.0 SDK used (`latestFeature`).
 - VSTest-only options such as `--collect` are rejected. For coverage, use `--coverage`.
 
 **Container build.**
-- The Dockerfile restores and publishes only `ExampleNet/ExampleNet.csproj`, so no test files reach the image.
-- The test project also sets `IsPublishable=false`, so a solution-level `dotnet publish` skips it.
+- **The Dockerfile copies only `global.json` and `src/ExampleNet/`,** in this order:
+  1. the project file, then `dotnet restore`;
+  2. the source, then `dotnet publish --no-restore`.
+
+  The restore layer is reused until `global.json` or `ExampleNet.csproj` changes. No test files reach the image.
+- **Root-level build files need their own `COPY`.** Any other root-level file that affects the build, such as a future `Directory.Build.props`, `Directory.Packages.props` or `NuGet.config`, needs its own `COPY` in the Dockerfile. Without one, the image builds with different settings than CI, and nothing reports it.
+- **`.dockerignore` must keep `**/bin` and `**/obj`.** Without them, the source copy overwrites the container's restore output with the host's `obj/project.assets.json`, and the publish fails (MSB4018 about a missing Windows NuGet fallback folder). It also excludes `.git`, `.vs`, `TestResults`, `tests`, `helm`, `openspec` and `appsettings.local.json`.
+- **The test project also sets `IsPublishable=false`,** so a solution-level `dotnet publish` skips it.
 
 ## Configuration flow
 
 - `Program.Main` builds its **own** `ConfigurationBuilder`: `appsettings.json` → `appsettings.{DOTNET_ENVIRONMENT}.json` (optional) → environment variables. It then feeds that into the host. It keys on `DOTNET_ENVIRONMENT`, not `ASPNETCORE_ENVIRONMENT`.
-- `appsettings.local*.json` (the `local` and `localcontainer` environments) is gitignored. Create it locally; the README has full examples.
+- `appsettings.local*.json` (the `local` and `localcontainer` environments) is gitignored. Create it locally in `src/ExampleNet/`; the README has full examples.
+  - **In Docker builds,** `.dockerignore` keeps `appsettings.local.json` out of the image. It matches that exact name, not `appsettings.local*.json`.
+  - **`appsettings.localcontainer.json` is deliberately copied into locally built images,** because `docker compose` sets `DOTNET_ENVIRONMENT=localcontainer`.
+  - **CI-built images contain neither file.**
 - Logging is configured entirely from the `Serilog` section via `ReadFrom.Configuration`. A `WriteTo` or `Enrich` entry naming a method from a package that isn't referenced doesn't fail startup. Serilog skips it and writes `Unable to find a method called ...` to stderr.
 - At startup the app logs every environment variable (Debug) and every resolved config key=value (Information). Secrets supplied through config will appear in the logs.
 - `Settings` gotchas:
@@ -79,13 +103,12 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
 ## CI/CD and versioning (`.github/workflows/`)
 
 1. **Build-Dotnet** runs on pushes and PRs to `main` that touch any of these paths:
-   - `ExampleNet/**`
-   - `ExampleNetTests/**`
-   - `ExampleNet.slnx`
+   - `src/**` (the app and the solution)
+   - `tests/**`
    - `global.json`
    - its own workflow file
 
-   It runs `dotnet restore`, `dotnet build -c Release` and `dotnet test`, then uploads `TestResults/` (TRX and cobertura) as an artifact. `--report-gh` writes the test summary to the run page. Inline annotations do not come through `dotnet test`, so look in the summary for failures.
+   It runs `dotnet restore`, `dotnet build -c Release` and `dotnet test` against `src/ExampleNet.slnx`, then uploads `TestResults/` (TRX and cobertura) as an artifact. The test step pins `--results-directory` to the workspace's `TestResults/`, because the upload step only warns when it finds no files. `--report-gh` writes the test summary to the run page. Inline annotations do not come through `dotnet test`, so look in the summary for failures.
 2. Pushing a `v*` tag runs **Build-Docker**. Its first job, `Test`, calls Build-Dotnet as a release gate. Everything after it runs only if the tests pass:
    - build and push `ghcr.io/<owner>/example-net-docker:<version>`;
    - sign it with cosign (keyless, no Rekor);

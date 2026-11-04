@@ -34,17 +34,17 @@ Eample .NET application
 
 ### Visual Studio
 
-Just build the solution in Visual Studio.
+Open the solution ```src/ExampleNet.slnx``` in Visual Studio and build it.
 
 ### Command line
 
-Run the following command from the solution's directory:
+Run the following command from the repository root:
 
 ```sh
-dotnet build --configuration Release
+dotnet build src/ExampleNet.slnx --configuration Release
 ```
 
-The build result as an executable is available at ```<solution root>/ExampleNet/bin/<Debug|Release>/net10.0/```
+The build result as an executable is available at ```<repository root>/src/ExampleNet/bin/<Debug|Release>/net10.0/```
 
 ## Build container
 
@@ -52,7 +52,7 @@ The build result as an executable is available at ```<solution root>/ExampleNet/
 
 #### Docker image
 
-Run the following command from the solution's directory:
+Run the following command from the repository root:
 
 ```sh
 docker build -t example-net-docker .
@@ -98,7 +98,7 @@ The following logging options are supported:
 1. Set local environment variable **DOTNET_ENVIRONMENT=local**
 When start application from Visual Studion this environment variable is configured in **launchSettings.json** file.
 
-2. Configure settings in **appsettings.local.json**
+2. Configure settings in **appsettings.local.json** in the *src/ExampleNet/* directory. Docker builds never copy this file into the image.
 
 ```json
 {
@@ -126,7 +126,7 @@ Local container configuration
 1. Set local environment variable **DOTNET_ENVIRONMENT=localcontainer**
 When start application from Visual Studion this environment variable is configured in **launchSettings.json** file.
 
-2. Configure settings in **appsettings.localcontainer.json** file
+2. Configure settings in **appsettings.localcontainer.json** file in the *src/ExampleNet/* directory. A locally built image includes it.
 
 ```json
 {
@@ -173,7 +173,7 @@ docker run --publish 50001:8080 --env DOTNET_ENVIRONMENT=localcontainer example-
 
 ### Docker Compose
 
-Run the following command from solution's root directory. This will build a new container image and run it.
+Run the following command from the repository root. This will build a new container image and run it.
 
 ```sh
 docker compose up
