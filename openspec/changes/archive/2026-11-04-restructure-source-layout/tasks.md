@@ -246,8 +246,14 @@ These tasks need a running Docker engine. If none is available, record 2.3 to 2.
   - **Tests:** `Test run summary: Passed!`, total 1, succeeded 1.
   - **Artifact:** `TestResults` (6775 bytes) holds `ExampleNetTests_net10.0_x64.trx`, `c9f7f482-….cobertura.xml`, and the TRX attachment copy of the cobertura in a subfolder. That is the same shape as the archived change's 6.1.
 - [ ] 6.2 Verify that the next push that changes only files under `src/` triggers `Build-Dotnet`.
+
+  **Pending at archive** (2026-11-04): no push since the move has changed only `src/`. The user chose to archive anyway. Structural evidence: both triggers list `src/**` (task 3.1). A Build-Dotnet run on the move push doesn't count, because that push changed the workflow file (6.1).
 - [ ] 6.3 Verify that the next push that changes only files under `tests/` triggers `Build-Dotnet`.
+
+  **Pending at archive** (2026-11-04): no push since the move has changed only `tests/`. Structural evidence: both triggers list `tests/**` (task 3.1).
 - [ ] 6.4 Verify that the next push by a user that changes only `helm/**` does **not** trigger `Build-Dotnet` (`ci-test-gate` scenario: Unrelated change does not trigger a run). The bot's `Chart.yaml` commits don't count, because pushes made with `GITHUB_TOKEN` start no workflows.
+
+  **Pending at archive** (2026-11-04): no user push has changed only `helm/**` since the move. Related live evidence: the user's push `401d706` changed only files under `openspec/` and started **no** workflow (`gh run list --commit 401d706` is empty). That is an unrelated change in the sense of the `ci-test-gate` scenario, but not the `helm/**` case this task names.
 - [ ] 6.5 On the next `v*` tag, verify:
   - `Build-Docker`'s `Test` gate passes.
   - The image builds with the new Dockerfile, and is pushed and signed.
@@ -255,3 +261,5 @@ These tasks need a running Docker engine. If none is available, record 2.3 to 2.
   - `Build-Helm` publishes and signs the chart.
 
   Until the follow-up `ci-docker-build-check` lands, this is the first time CI builds the new Dockerfile.
+
+  **Pending at archive** (2026-11-04): no `v*` tag has been pushed since the move. Local evidence: the new Dockerfile builds (2.3), and its `/App` listing is identical to the old layout's, 22 entries each (2.5). The image runs read-only as 1000:1000 (2.6).
