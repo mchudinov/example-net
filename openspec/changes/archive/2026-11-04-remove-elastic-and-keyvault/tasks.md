@@ -137,10 +137,44 @@ If Docker isn't running, use the fallback in 2.4.
   - Diff: 7 insertions, 9 deletions.
 - [x] 3.3 Commit 3.1, 3.2 and this change's `openspec/changes/remove-elastic-and-keyvault/` files on `main`. Verify that `git show --stat HEAD` lists only `README.md`, `CLAUDE.md` and files under that change directory.
 
+  *Observed (2026-11-03):* commit `457b065` lists exactly `CLAUDE.md`, `README.md` and the 5 files of the change directory.
+
 ## 4. Push and CI
 
-- [ ] 4.1 **Ask the user before pushing.** Then push both commits. Verify against the pushed SHAs:
+- [x] 4.1 **Ask the user before pushing.** Then push both commits. Verify against the pushed SHAs:
   - `Build-Dotnet` runs, because `ExampleNet/**` changed, and succeeds.
   - One `Build-Helm` run with event `push` exists. `gh run view <id> --json jobs` shows `Check-Helm success`, and `Build-and-Push-Helm` and `Sign-Helm-Chart` as `skipped`. `Check-Helm` covers lint, the k3d install and Polaris with a score of at least 90.
   - Nothing is published.
-- [ ] 4.2 Run `openspec validate remove-elastic-and-keyvault --strict` and verify it passes. The change is then ready for `/opsx:archive`. Its sync REMOVES "Deployment configuration contract is preserved" and ADDS "Deployment configuration contract" (design D4), and it verifies that result itself.
+
+  *Observed (2026-11-03). The user pushed and released:*
+  - The user merged rather than rebased. `fb38acc` merges `8aef5af` and `457b065` with the release bot's `d797e16`, which bumped the chart to 1.1.0.
+  - `e175bda` adds the "1.1.0 predates this change" wording to the proposal and design.
+  - The user tagged `v1.2.0` at `e175bda`.
+  - **`v1.1.0` predates this change.** Its tag is at `c2f5226`, so the released 1.1.0 image and chart still contain Elastic and Key Vault.
+  - Build-Dotnet `41692729653` (push, `fb38acc`): `Build-and-Test` passed.
+  - Build-Helm `41692729560` (push, `fb38acc`): **hung.**
+    - Lint passed at 18:20:04.
+    - The step "Create a test k3d cluster for dry-run install" (`AbsaOSS/k3d-action`) had not finished 6 minutes later. At 18:26 it was still `in_progress`, and the publish jobs had not been evaluated.
+    - The release run's whole `Check-Helm` took 44 s.
+  - Build-Docker `41692964753` (tag `v1.2.0`, `e175bda`) passed all four jobs: the test gate, push, sign and the chart-version update.
+  - Build-Helm `41693317431` (`workflow_run`, `f994a01`) passed all three jobs: `Check-Helm` (lint, k3d install and Polaris), `Build-and-Push-Helm` and `Sign-Helm-Chart`.
+    - `f994a01` is `e175bda` plus the bot's bump to 1.2.0.
+    - So chart 1.2.0 was checked, published and signed from the content of this change.
+  - Released 1.2.0, checked from git (the GHCR package is private):
+    - The image source (`e175bda`) has no `AddElasticApm`.
+    - The chart source (`f994a01`) has no `elastic:` or `keyvault:` values and no `secretprovider.yaml`, and it includes `removed-values.yaml`.
+    - Rendering it produces 0 `ElasticApm__`, `Serilog__WriteTo__1__`, `SecretProviderClass` or `secrets-store` matches.
+    - `--set elastic.apm.enabled=true` fails with the guard message.
+  - **Still open:** the push-run check that `Build-and-Push-Helm` and `Sign-Helm-Chart` show as `skipped`. Run `41692729560` has to finish, or be cancelled and re-run.
+  - **Accepted as is by the user (2026-11-03), and left open:**
+    - Attempt 1 of `41692729560` was cancelled at 18:31:10 (`completed/cancelled`), still in the k3d step.
+    - Attempt 2 started at 18:31:12. Its result is not recorded here.
+    - The released content passed the full `Check-Helm` in `41693317431`.
+    - The behaviour that a push run does not publish was verified in the archived `helm-publish-only-on-release` change, in run `41658988349`.
+  - **Closed after archiving:**
+    - Attempt 2 of `41692729560` finished `completed/success`. `Check-Helm` (18:31:24 to 18:32:15) passed lint, the k3d cluster, the dry-run and real install, and Polaris.
+    - `Build-and-Push-Helm` and `Sign-Helm-Chart` were `skipped`.
+    - The attempt-1 hang was transient, in `AbsaOSS/k3d-action`'s cluster creation.
+- [x] 4.2 Run `openspec validate remove-elastic-and-keyvault --strict` and verify it passes. The change is then ready for `/opsx:archive`. Its sync REMOVES "Deployment configuration contract is preserved" and ADDS "Deployment configuration contract" (design D4), and it verifies that result itself.
+
+  *Observed (2026-11-03):* `Change 'remove-elastic-and-keyvault' is valid` (exit 0), run on `f994a01` with the task notes above.
