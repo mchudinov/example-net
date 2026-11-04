@@ -70,7 +70,7 @@ The README's `docker run --publish 50001:8080` example is wrong: the container l
   2. the source, then `dotnet publish --no-restore`.
 
   The restore layer is reused until `global.json` or `ExampleNet.csproj` changes. No test files reach the image.
-- **Root-level build files need their own `COPY`.** Any other root-level file that affects the build, such as a future `Directory.Build.props`, `Directory.Packages.props` or `NuGet.config`, needs its own `COPY` in the Dockerfile. Without one, the image builds with different settings than CI, and nothing reports it.
+- **Root-level build files need their own `COPY`.** Any other root-level file that affects the build, such as a future `Directory.Build.props`, `Directory.Packages.props` or `NuGet.config`, needs its own `COPY` in the Dockerfile. Without one, the image builds with different settings than CI, and nothing reports it. Add the file to `Check-Docker`'s `paths` as well, so a change to it is image-build checked.
 - **`.dockerignore` must keep `**/bin` and `**/obj`.** Without them, the source copy overwrites the container's restore output with the host's `obj/project.assets.json`, and the publish fails (MSB4018 about a missing Windows NuGet fallback folder). It also excludes `.git`, `.vs`, `TestResults`, `tests`, `helm`, `openspec` and `appsettings.local.json`.
 - **The test project also sets `IsPublishable=false`,** so a solution-level `dotnet publish` skips it.
 
@@ -109,11 +109,26 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
    - its own workflow file
 
    It runs `dotnet restore`, `dotnet build -c Release` and `dotnet test` against `src/ExampleNet.slnx`, then uploads `TestResults/` (TRX and cobertura) as an artifact. The test step pins `--results-directory` to the workspace's `TestResults/`, because the upload step only warns when it finds no files. `--report-gh` writes the test summary to the run page. Inline annotations do not come through `dotnet test`, so look in the summary for failures.
-2. Pushing a `v*` tag runs **Build-Docker**. Its first job, `Test`, calls Build-Dotnet as a release gate. Everything after it runs only if the tests pass:
+2. **Check-Docker** builds the container image to prove the Dockerfile still builds. It runs on pushes and PRs to `main` that touch any of these paths, and on manual runs:
+   - `Dockerfile`
+   - `.dockerignore`
+   - `global.json`
+   - `src/**`
+   - its own workflow file
+
+   It uses the same `docker/build-push-action` and default builder as Build-Docker. It only builds:
+   - `push: false`;
+   - read-only permissions and no registry login;
+   - no layer cache.
+
+   It runs in parallel with Build-Dotnet. `tests/**` and `helm/**` changes don't trigger it, because `.dockerignore` keeps `tests/` out of the build.
+
+   **Never name it `Build-Docker`.** Build-Helm starts on any completed run with that name, and publishes the chart when it succeeded.
+3. Pushing a `v*` tag runs **Build-Docker**. Its first job, `Test`, calls Build-Dotnet as a release gate. Everything after it runs only if the tests pass:
    - build and push `ghcr.io/<owner>/example-net-docker:<version>`;
    - sign it with cosign (keyless, no Rekor);
    - have a bot rewrite `helm/Chart.yaml` `version` and `appVersion` to the tag version and commit to `main`.
-3. **Build-Helm** runs in three situations: when Build-Docker completes, on pushes and PRs to `main` that touch `helm/**`, and on manual runs. After a Build-Docker run, it continues only if that run succeeded. Build-Helm finds Build-Docker by name, so don't rename that workflow.
+4. **Build-Helm** runs in three situations: when Build-Docker completes, on pushes and PRs to `main` that touch `helm/**`, and on manual runs. After a Build-Docker run, it continues only if that run succeeded. Build-Helm finds Build-Docker by name, so don't rename that workflow.
    - **Every run checks the chart:**
      - `helm lint . --strict`
      - install into a k3d cluster

@@ -1,0 +1,45 @@
+name: Check-Docker
+
+# Builds the container image to prove the Dockerfile still builds. It never pushes, signs or
+# publishes anything: no registry login, read-only permissions, push: false.
+# Never name this workflow Build-Docker: Build-Helm starts on any completed run with that name
+# and publishes the chart when it succeeded.
+
+on:
+  workflow_dispatch:
+  # Everything the image build reads. .dockerignore keeps tests/ out of the build.
+  # A new root-level file that the Dockerfile copies must be added to both lists.
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'global.json'
+      - 'src/**'
+      - '.github/workflows/check-docker.yaml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'global.json'
+      - 'src/**'
+      - '.github/workflows/check-docker.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  Build-Image:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v7
+
+    # Same action and default builder as Build-Docker, so this builds the image the way a release does.
+    - name: Build image (not pushed)
+      uses: docker/build-push-action@v7
+      with:
+        context: .
+        push: false
+        tags: example-net-docker:check
