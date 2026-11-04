@@ -10,7 +10,7 @@ A minimal .NET 10 generic-host app (`ExampleNet`). It serves as a reference serv
 
 Delegate all C# work to the `dotnet-developer` subagent (`.claude/agents/dotnet-developer.md`). Do not edit these files directly in the main session:
 
-- `*.cs`, `*.csproj`, `*.sln`
+- `*.cs`, `*.csproj`, `*.slnx`
 - `ExampleNet/appsettings*.json`
 - anything in `ExampleNetTests/`
 
@@ -23,6 +23,8 @@ Helm, Dockerfile, workflow and documentation changes stay in the main session.
 ## Commands
 
 Run from the repo root unless noted.
+
+The solution is `ExampleNet.slnx` (the XML solution format). Keep it the only solution file at the root. The bare `dotnet` commands below find it automatically; with a second `.sln` or `.slnx` next to it they fail with `MSB1011`. To add a project, use `dotnet sln add <path/to/Project.csproj>`.
 
 ```sh
 dotnet build                                   # output: ExampleNet/bin/<Debug|Release>/net10.0/
@@ -79,7 +81,7 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
 1. **Build-Dotnet** runs on pushes and PRs to `main` that touch any of these paths:
    - `ExampleNet/**`
    - `ExampleNetTests/**`
-   - `ExampleNet.sln`
+   - `ExampleNet.slnx`
    - `global.json`
    - its own workflow file
 

@@ -9,7 +9,7 @@ on:
     paths:
       - 'ExampleNet/**'
       - 'ExampleNetTests/**'
-      - 'ExampleNet.sln'
+      - 'ExampleNet.slnx'
       - 'global.json'
       - '.github/workflows/build-dotnet.yaml'
   pull_request:
@@ -17,7 +17,7 @@ on:
     paths:
       - 'ExampleNet/**'
       - 'ExampleNetTests/**'
-      - 'ExampleNet.sln'
+      - 'ExampleNet.slnx'
       - 'global.json'
       - '.github/workflows/build-dotnet.yaml'
 
