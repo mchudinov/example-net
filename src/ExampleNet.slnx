@@ -1,4 +1,4 @@
 <Solution>
   <Project Path="ExampleNet/ExampleNet.csproj" />
-  <Project Path="ExampleNetTests/ExampleNetTests.csproj" />
+  <Project Path="../tests/ExampleNetTests/ExampleNetTests.csproj" />
 </Solution>

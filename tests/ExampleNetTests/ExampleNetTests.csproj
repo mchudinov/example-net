@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ExampleNet\ExampleNet.csproj" />
+    <ProjectReference Include="..\..\src\ExampleNet\ExampleNet.csproj" />
   </ItemGroup>
 
 </Project>
