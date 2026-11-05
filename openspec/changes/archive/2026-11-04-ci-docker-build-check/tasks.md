@@ -118,7 +118,7 @@
 
   *Observed after archive (2026-11-05):* commit `f71d46e` changes only `tests/ExampleNetTests/SettingsTests.cs` (it adds a trailing newline). Its push started only `Build-Dotnet` run 42003929426, which succeeded at 09:38:04Z. `gh run list --commit <full sha> --workflow Check-Docker` returned 0 runs after that run had finished. The last `src/` push started both workflows at the same moment, so a `Check-Docker` run would have been visible by then.
 
-  The `helm/**` half of the scenario hasn't been seen live; it remains covered by the `paths` list.
+  *`helm/**` half, observed 2026-11-05:* commit `a334d13` changes only `helm/build-helm.sh`. Its push started only `Build-Helm` run 42006205859, and `gh run list --commit <full sha> --workflow Check-Docker` returned 0 runs after that run had finished. That run also confirms the chart stays check-only outside a release: `Check-Helm` succeeded, and `Build-and-Push-Helm` and `Sign-Helm-Chart` were skipped.
 - [x] 3.4 For every `Check-Docker` run observed in 3.1 to 3.3, verify that no `Build-Helm` run follows it, and that no new image version appears for that commit (spec: the check publishes nothing).
 
   **Pending at archive** (2026-11-04): it holds for the only run so far, 3.1. No `Build-Helm` run followed run 41881893007, and its log shows no registry push. The task stays open until the runs in 3.2 and 3.3 are observed.
@@ -128,7 +128,7 @@
   *Closed (2026-11-05):* 3.3 started no `Check-Docker` run, so the runs from 3.1 and 3.2 are the only ones this task covers. No `Build-Helm` run followed either; the latest `Build-Helm` run is still 41693317431, from before this change.
 
   **Limit of this evidence:** the registry itself wasn't queried, because the local `gh` token lacks `read:packages`. "No new image version" rests on the run logs showing no push, and on the workflow having read-only permissions and no registry login.
-- [ ] 3.5 On the next `v*` tag, verify:
+- [x] 3.5 On the next `v*` tag, verify:
   - **No `Check-Docker` run** is started by the tag.
   - **`Build-Docker` runs as before:** the `Test` gate; build, push and sign; the bot's `Chart.yaml` bump; then `Build-Helm` publishes and signs the chart.
 
@@ -137,6 +137,12 @@
   **Pending at archive** (2026-11-04): no `v*` tag has been pushed since `ffc1343`. Structural evidence:
   - `branches: [main]` on the `push` trigger excludes tag pushes;
   - `Build-Docker` is unchanged (task 1.5).
+
+  *Observed after archive (2026-11-05, tag `v1.2.1` on `8404e43`):*
+  - **No `Check-Docker` run:** `gh run list --commit <full sha>` for the tag's commit lists only `Build-Docker`.
+  - **`Build-Docker` run 42004779668** (event `push`, ref `v1.2.1`) succeeded. Its jobs ran in the usual order: `Test / Build-and-Test`, then `Build-and-Push-Docker`, then `Update-Chart-Version` and `Sign-Docker-Image`.
+  - **Bot commit:** `104f831` set `helm/Chart.yaml` `version` and `appVersion` to `1.2.1`.
+  - **`Build-Helm` run 42005039124** (event `workflow_run`) succeeded: `Check-Helm`, `Build-and-Push-Helm`, `Sign-Helm-Chart`.
 - [ ] 3.6 Pull-request scenario ("Application change is image-build checked"): this repository takes no PRs, so record it as **not run**. Structural evidence: task 1.1 verifies that the `pull_request` trigger lists the same paths as `push`.
 
   **Not run** (2026-11-04): the user works directly on `main` and opens no PRs. Structural evidence: in task 1.1, `diff` showed the `pull_request` path list is byte-identical to the `push` list.

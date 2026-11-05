@@ -255,10 +255,12 @@ These tasks need a running Docker engine. If none is available, record 2.3 to 2.
   **Pending at archive** (2026-11-04): no push since the move has changed only `tests/`. Structural evidence: both triggers list `tests/**` (task 3.1).
 
   *Observed after archive (2026-11-05):* commit `f71d46e` changes only `tests/ExampleNetTests/SettingsTests.cs`. Its push started `Build-Dotnet` run 42003929426 (event `push`), which succeeded (`Test run summary: Passed!`, 1 succeeded). No other workflow ran for that commit.
-- [ ] 6.4 Verify that the next push by a user that changes only `helm/**` does **not** trigger `Build-Dotnet` (`ci-test-gate` scenario: Unrelated change does not trigger a run). The bot's `Chart.yaml` commits don't count, because pushes made with `GITHUB_TOKEN` start no workflows.
+- [x] 6.4 Verify that the next push by a user that changes only `helm/**` does **not** trigger `Build-Dotnet` (`ci-test-gate` scenario: Unrelated change does not trigger a run). The bot's `Chart.yaml` commits don't count, because pushes made with `GITHUB_TOKEN` start no workflows.
 
   **Pending at archive** (2026-11-04): no user push has changed only `helm/**` since the move. Related live evidence: the user's push `401d706` changed only files under `openspec/` and started **no** workflow: `gh run list --commit "$(git rev-parse 401d706)"` is empty. Corrected 2026-11-04 during `ci-docker-build-check`: this note first cited `gh run list --commit 401d706`, which is invalid evidence, because `--commit` silently matches nothing for a short SHA. Re-checked with the full SHA, the result is still no runs. That is an unrelated change in the sense of the `ci-test-gate` scenario, but not the `helm/**` case this task names.
-- [ ] 6.5 On the next `v*` tag, verify:
+
+  *Observed after archive (2026-11-05):* commit `a334d13` changes only `helm/build-helm.sh`, adding a trailing newline; `.helmignore` keeps that script out of the chart. Its push, made with user credentials, started only `Build-Helm` run 42006205859 (event `push`), which succeeded. `gh run list --commit <full sha>` returned 0 `Build-Dotnet` runs after that run had finished. The `pull_request` half of the scenario isn't observed, because this repository takes no PRs; it uses the same `paths` list.
+- [x] 6.5 On the next `v*` tag, verify:
   - `Build-Docker`'s `Test` gate passes.
   - The image builds with the new Dockerfile, and is pushed and signed.
   - The bot commits the `Chart.yaml` bump.
@@ -267,3 +269,11 @@ These tasks need a running Docker engine. If none is available, record 2.3 to 2.
   Until the follow-up `ci-docker-build-check` lands, this is the first time CI builds the new Dockerfile.
 
   **Pending at archive** (2026-11-04): no `v*` tag has been pushed since the move. Local evidence: the new Dockerfile builds (2.3), and its `/App` listing is identical to the old layout's, 22 entries each (2.5). The image runs read-only as 1000:1000 (2.6).
+
+  *Observed after archive (2026-11-05, tag `v1.2.1` on `8404e43`, reported by the user and confirmed in the runs):*
+  - **`Test` gate:** `Build-Docker` run 42004779668 passed `Test / Build-and-Test` first.
+  - **New Dockerfile:** the build log shows the new steps: `COPY global.json ./`, `COPY src/ExampleNet/ExampleNet.csproj src/ExampleNet/`, `RUN dotnet restore src/ExampleNet/ExampleNet.csproj`, `COPY src/ExampleNet/ src/ExampleNet/`, and `RUN dotnet publish … --no-restore -o out`. The only compiler warning is the baseline CS8605.
+  - **Pushed and signed:** the tags are `ghcr.io/mchudinov/example-net-docker:1.2.1`, `:1.2` and `:latest`. `Sign-Docker-Image` succeeded, and its log shows the cosign claims were validated.
+  - **Chart:** the bot committed `104f831` (`Chart.yaml` 1.2.1). `Build-Helm` run 42005039124 published and signed the chart.
+
+  This was CI's first **release** build of the new Dockerfile. Its first CI build of any kind was `Check-Docker` run 41881893007 on `ffc1343`.
