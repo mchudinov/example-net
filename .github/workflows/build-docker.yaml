@@ -75,6 +75,8 @@ jobs:
       uses: docker/build-push-action@v7
       with:
         context: ${{ env.DOCKER_WORKING_DIRECTORY }}
+        # Must match the list in check-docker.yaml.
+        platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}

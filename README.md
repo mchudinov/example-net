@@ -78,6 +78,8 @@ Docker image and Helm chart will be versioned after the tag:
 - example-net-docker:1.2.3
 - example-net-helm:1.2.3
 
+Docker images are published for `linux/amd64` and `linux/arm64`, starting with the first release after 1.2.1. Version 1.2.1 and earlier are `linux/amd64` only.
+
 Both the Docker image and the Helm chart will be pushed to the GitHub Container Registry for *WSS-EA-Cloud-DevOps* organizationn.
 
 ## Configuration

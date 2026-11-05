@@ -1,17 +1,20 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
+# The SDK runs natively on the build machine and cross-compiles for the target architecture.
+# -a is needed on both restore and publish: publish --no-restore fails with NETSDK1047 otherwise.
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
+ARG TARGETARCH
 WORKDIR /App
 
-# Restore layer: rebuilt only when global.json or the project file changes.
+# Restore layer: one per target architecture, rebuilt only when global.json or the project file changes.
 # Only the app project is copied: the test project must never reach the image.
 # Root-level build files (global.json; any future Directory.Build.props,
 # Directory.Packages.props or NuGet.config) must be copied here explicitly.
 COPY global.json ./
 COPY src/ExampleNet/ExampleNet.csproj src/ExampleNet/
-RUN dotnet restore src/ExampleNet/ExampleNet.csproj
+RUN dotnet restore src/ExampleNet/ExampleNet.csproj -a $TARGETARCH
 
 # Source layer: build and publish a release
 COPY src/ExampleNet/ src/ExampleNet/
-RUN dotnet publish src/ExampleNet/ExampleNet.csproj -c Release --no-restore -o out
+RUN dotnet publish src/ExampleNet/ExampleNet.csproj -c Release --no-restore -a $TARGETARCH -o out
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled

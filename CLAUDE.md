@@ -17,7 +17,7 @@ Delegate all C# work to the `dotnet-developer` subagent (`.claude/agents/dotnet-
 Helm, Dockerfile, workflow and documentation changes stay in the main session.
 
 - **Branching.** The agent creates a local `agent/<slug>` branch and commits there. It never pushes or opens PRs unless asked. Afterwards the working tree is left on that branch.
-- **Target framework.** The repo targets `net10.0`, which matches the agent's .NET 10 baseline. Three things must change together with the target framework: the Dockerfile's `sdk:10.0` build image, its `aspnet:10.0-noble-chiseled` runtime image, and the SDK floor in `global.json`.
+- **Target framework.** The repo targets `net10.0`, which matches the agent's .NET 10 baseline. Three things must change together with the target framework: the Dockerfile's `sdk:10.0` build image, its `aspnet:10.0-noble-chiseled` runtime image, and the SDK floor in `global.json`. A new runtime image must include `linux/arm64`, because releases publish that platform too.
 - **Chart changes.** If a C# change needs a matching chart change, include the chart change in the same brief so both land in one commit. Example: a new `Settings` value that needs an env var in `helm/templates/deployment.yaml`.
 
 ## Commands
@@ -70,6 +70,8 @@ The README's `docker run --publish 50001:8080` example is wrong: the container l
   2. the source, then `dotnet publish --no-restore`.
 
   The restore layer is reused until `global.json` or `ExampleNet.csproj` changes. No test files reach the image.
+- **The build stage cross-compiles for `linux/amd64` and `linux/arm64`.** The SDK runs natively (`FROM --platform=$BUILDPLATFORM`), and `dotnet restore` and `dotnet publish` both take `-a $TARGETARCH`. Each architecture gets its own restore layer. Without `-a` on restore, the publish fails with `NETSDK1047`. BuildKit sets both variables, so the Dockerfile needs BuildKit, which is the default.
+- **Keep the runtime stage free of `RUN`.** A `RUN` there would execute as arm64. The release and check builders have no arm64 emulation, and .NET doesn't support running under QEMU.
 - **Root-level build files need their own `COPY`.** Any other root-level file that affects the build, such as a future `Directory.Build.props`, `Directory.Packages.props` or `NuGet.config`, needs its own `COPY` in the Dockerfile. Without one, the image builds with different settings than CI, and nothing reports it. Add the file to `Check-Docker`'s `paths` as well, so a change to it is image-build checked.
 - **`.dockerignore` must keep `**/bin` and `**/obj`.** Without them, the source copy overwrites the container's restore output with the host's `obj/project.assets.json`, and the publish fails (MSB4018 about a missing Windows NuGet fallback folder). It also excludes `.git`, `.vs`, `TestResults`, `tests`, `helm`, `openspec` and `appsettings.local.json`.
 - **The test project also sets `IsPublishable=false`,** so a solution-level `dotnet publish` skips it.
@@ -116,16 +118,17 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
    - `src/**`
    - its own workflow file
 
-   It uses the same `docker/build-push-action` and default builder as Build-Docker. It only builds:
+   It uses the same `docker/build-push-action` and default builder as Build-Docker, and builds `linux/amd64` and `linux/arm64`. Keep its `platforms` list identical to Build-Docker's. It only builds:
    - `push: false`;
    - read-only permissions and no registry login;
-   - no layer cache.
+   - no layer cache;
+   - no container run, so it doesn't show that the image starts on either platform.
 
    It runs in parallel with Build-Dotnet. `tests/**` and `helm/**` changes don't trigger it, because `.dockerignore` keeps `tests/` out of the build.
 
    **Never name it `Build-Docker`.** Build-Helm starts on any completed run with that name, and publishes the chart when it succeeded.
 3. Pushing a `v*` tag runs **Build-Docker**. Its first job, `Test`, calls Build-Dotnet as a release gate. Everything after it runs only if the tests pass:
-   - build and push `ghcr.io/<owner>/example-net-docker:<version>`;
+   - build and push `ghcr.io/<owner>/example-net-docker:<version>` for `linux/amd64` and `linux/arm64` (one multi-platform image, with its `platforms` list identical to Check-Docker's);
    - sign it with cosign (keyless, no Rekor);
    - have a bot rewrite `helm/Chart.yaml` `version` and `appVersion` to the tag version and commit to `main`.
 4. **Build-Helm** runs in three situations: when Build-Docker completes, on pushes and PRs to `main` that touch `helm/**`, and on manual runs. After a Build-Docker run, it continues only if that run succeeded. Build-Helm finds Build-Docker by name, so don't rename that workflow.
