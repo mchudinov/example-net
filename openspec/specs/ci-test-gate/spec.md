@@ -81,7 +81,7 @@ Every push to `main`, and every pull request that targets `main`, SHALL trigger 
 - the application's source;
 - the build configuration the image build uses.
 
-The run SHALL fail if the image build fails.
+The run SHALL build the image for every platform a release publishes. It SHALL fail if the image build fails for any of those platforms.
 
 The run SHALL NOT publish anything:
 - it SHALL NOT push or sign a container image;
@@ -98,6 +98,14 @@ The run SHALL NOT publish anything:
 
 #### Scenario: Broken image build fails the check
 - **WHEN** a push to `main` or a pull request to `main` contains a change with which the image no longer builds
+- **THEN** the image build check fails
+
+#### Scenario: Image build check covers every published platform
+- **WHEN** the image build check runs
+- **THEN** it builds the image for `linux/amd64` and `linux/arm64`
+
+#### Scenario: A build that breaks on one platform fails the check
+- **WHEN** a push to `main` or a pull request to `main` contains a change with which the image builds for one published platform but not the other
 - **THEN** the image build check fails
 
 #### Scenario: Change outside the image does not trigger an image build
