@@ -98,19 +98,36 @@
   **`gh run list --commit` needs the full SHA.** A short SHA silently returns no runs: `0459911` gives 0, its full SHA gives 1. Use `--commit "$(git rev-parse <sha>)"` in the checks below.
 
   **Builder capabilities:** the feature list also shows `"Cache export": true`. The runner's default builder with the containerd image store can export a cache, so a later cache change wouldn't strictly need `setup-buildx`.
-- [ ] 3.2 On the next push that changes the `Dockerfile`, `.dockerignore`, `global.json` or `src/**`, verify that `Check-Docker` runs and succeeds (spec scenario "Image builds for a change to its build definition").
+- [x] 3.2 On the next push that changes the `Dockerfile`, `.dockerignore`, `global.json` or `src/**`, verify that `Check-Docker` runs and succeeds (spec scenario "Image builds for a change to its build definition").
 
   If the push changes only `src/**`, also verify that `Build-Dotnet` runs. That also counts as the pending task 6.2 of the archived `restructure-source-layout`.
 
   **Pending at archive** (2026-11-04): no push since `ffc1343` has changed these paths. The user chose to archive anyway. Structural evidence:
   - the `push` paths list exactly these files (task 1.1);
   - the first run, 3.1, already built the image successfully on the runner.
-- [ ] 3.3 On the next push that changes only `tests/**` or only `helm/**`, verify that **no** `Check-Docker` run is triggered (spec scenario "Change outside the image does not trigger an image build").
+
+  *Observed after archive (2026-11-05):* commit `08ca2aa` changes only `src/ExampleNet/appsettings.json` (one added blank line). Its push started both workflows at 09:29:45Z, in parallel; both finished at 09:30:18Z.
+  - **`Check-Docker`:** run 42002826962 (event `push`) succeeded, job `Build-Image`.
+  - **`Build-Dotnet`:** run 42002827128 (event `push`) succeeded, job `Build-and-Test`.
+  - **Not evidence:** the earlier commit `79364ca` started no runs, correctly. It is an empty commit made through GitHub's web interface: its tree equals its parent's, and GitHub reports 0 changed files. So no path filter could match it.
+
+  The scenario's wording names a change to the build definition, while this push changed application source. The trigger for `Dockerfile` and `.dockerignore` is still covered only by the `paths` list (task 1.1).
+- [x] 3.3 On the next push that changes only `tests/**` or only `helm/**`, verify that **no** `Check-Docker` run is triggered (spec scenario "Change outside the image does not trigger an image build").
 
   **Pending at archive** (2026-11-04): no push that changes only `tests/**` or only `helm/**` has happened since `ffc1343`. Structural evidence: neither `tests/**` nor `helm/**` is in the paths (task 1.1).
-- [ ] 3.4 For every `Check-Docker` run observed in 3.1 to 3.3, verify that no `Build-Helm` run follows it, and that no new image version appears for that commit (spec: the check publishes nothing).
+
+  *Observed after archive (2026-11-05):* commit `f71d46e` changes only `tests/ExampleNetTests/SettingsTests.cs` (it adds a trailing newline). Its push started only `Build-Dotnet` run 42003929426, which succeeded at 09:38:04Z. `gh run list --commit <full sha> --workflow Check-Docker` returned 0 runs after that run had finished. The last `src/` push started both workflows at the same moment, so a `Check-Docker` run would have been visible by then.
+
+  The `helm/**` half of the scenario hasn't been seen live; it remains covered by the `paths` list.
+- [x] 3.4 For every `Check-Docker` run observed in 3.1 to 3.3, verify that no `Build-Helm` run follows it, and that no new image version appears for that commit (spec: the check publishes nothing).
 
   **Pending at archive** (2026-11-04): it holds for the only run so far, 3.1. No `Build-Helm` run followed run 41881893007, and its log shows no registry push. The task stays open until the runs in 3.2 and 3.3 are observed.
+
+  *Update (2026-11-05):* it also holds for the 3.2 run. No `Build-Helm` run followed run 42002826962, and its log has 0 matches for `pushing layers`, `pushing manifest`, a `ghcr.io/…:` reference or `login succeeded`. The task stays open until 3.3 is observed.
+
+  *Closed (2026-11-05):* 3.3 started no `Check-Docker` run, so the runs from 3.1 and 3.2 are the only ones this task covers. No `Build-Helm` run followed either; the latest `Build-Helm` run is still 41693317431, from before this change.
+
+  **Limit of this evidence:** the registry itself wasn't queried, because the local `gh` token lacks `read:packages`. "No new image version" rests on the run logs showing no push, and on the workflow having read-only permissions and no registry login.
 - [ ] 3.5 On the next `v*` tag, verify:
   - **No `Check-Docker` run** is started by the tag.
   - **`Build-Docker` runs as before:** the `Test` gate; build, push and sign; the bot's `Chart.yaml` bump; then `Build-Helm` publishes and signs the chart.
