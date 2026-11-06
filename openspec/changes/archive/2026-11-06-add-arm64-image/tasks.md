@@ -105,7 +105,7 @@ No workflow or verification step starts the container, on either platform (desig
 
 ## 6. First multi-platform release
 
-- [ ] 6.1 The user decides when to push the next `v*` tag. After that release, log in with `docker login ghcr.io` using a token that has `read:packages`. Verify (spec: "Version tag lists both platforms", "Signature verifies for the released image"):
+- [x] 6.1 The user decides when to push the next `v*` tag. After that release, log in with `docker login ghcr.io` using a token that has `read:packages`. Verify (spec: "Version tag lists both platforms", "Signature verifies for the released image"):
   - `docker buildx imagetools inspect ghcr.io/mchudinov/example-net-docker:<version>` lists `linux/amd64` and `linux/arm64`.
   - The digest in `Sign-Docker-Image`'s "Sign the image" step is the digest the tag resolves to, and "Verify the signature" succeeded.
   - `Build-Helm` published and signed the chart for that version.
@@ -113,6 +113,10 @@ No workflow or verification step starts the container, on either platform (desig
   If no tag has been pushed by archive time, record this as **pending at archive**, with the evidence from tasks 1.3 and 5.1, as `restructure-source-layout` did.
 
   **Pending at archive** (2026-11-06): no `v*` tag has been pushed since `8f8e9bf`. Evidence so far: each platform's payload targets its own architecture (1.3), and `Check-Docker` run 42087897329 built both platforms on a runner (5.1). The multi-platform push, the signing of its digest and the chart publish first run on the next tag.
+
+  *Observed after archive (2026-11-06):* release `v1.3.0`, `Build-Docker` run 42220698024 and `Build-Helm` run 42220906429, both successful. The packages had become public by then, so no login was needed. `docker buildx imagetools inspect` lists `linux/amd64` and `linux/arm64`, plus two attestation manifests. The tag resolves to `sha256:f47218b5…186a`, the same digest used in "Sign the image", and "Verify the signature" succeeded. `Build-Helm` pushed `example-net-helm:1.3.0` (`sha256:662a06b3…c18c`), and its signing and verification steps succeeded.
 - [ ] 6.2 When the image is first deployed to an arm64 node, record the version and whether the pod became ready. This is the first proof that the arm64 image starts (design D2). Verify by noting the result here. If there's been no arm64 deployment by archive time, record this as **pending at archive**.
 
   **Pending at archive** (2026-11-06): no multi-platform image has been released or deployed yet, and neither platform's new image has been started, under the user's "no smoke tests" decision (design D2). The deployment needs `image.repository` overridden, because the chart's default points at `ghcr.io/wss-ea-cloud-devops/example-net-docker` (see proposal.md).
+
+  *Observed after archive (2026-11-06):* still open, because no arm64 deployment has happened. From chart 1.3.0 the override isn't needed: `fix-chart-image-location` corrected the default.
