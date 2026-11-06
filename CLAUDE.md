@@ -100,7 +100,8 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
   - `helm lint` only logs the `fail` at INFO level, so test the guard with `helm template`.
   - Delete the file once deployers have migrated.
 - **Argo Rollouts** (`rollout.enabled`). This swaps the Deployment for `rollout-bluegreen.yaml` plus preview service/ingress. `rollout-canary.yaml` is an empty stub. The blue-green template is out of sync with `deployment.yaml`: it uses containerPort 8080, probes `/`, and has no env vars. Changes to `deployment.yaml` are not reflected there.
-- **Cluster prerequisites.** The chart expects priority class `user-normal` and pull secret `container-registry-pullsecret` in the target namespace.
+- **Default image.** `image.repository` must be `ghcr.io/mchudinov/example-net-docker`, the path Build-Docker pushes to. The workflows derive that path from the repo owner while the chart hard-codes it, and CI doesn't compare them, so update the default if the repo moves. Both packages are public, so the chart has no default pull secret.
+- **Cluster prerequisites.** The chart expects priority class `user-normal`.
 
 ## CI/CD and versioning (`.github/workflows/`)
 

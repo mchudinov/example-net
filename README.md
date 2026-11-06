@@ -80,7 +80,7 @@ Docker image and Helm chart will be versioned after the tag:
 
 Docker images are published for `linux/amd64` and `linux/arm64`, starting with the first release after 1.2.1. Version 1.2.1 and earlier are `linux/amd64` only.
 
-Both the Docker image and the Helm chart will be pushed to the GitHub Container Registry for *WSS-EA-Cloud-DevOps* organizationn.
+Both the Docker image and the Helm chart will be pushed to the GitHub Container Registry under the *mchudinov* account. Both packages are public.
 
 ## Configuration
 
@@ -186,13 +186,10 @@ docker compose up
 #### Prerequisites
 
 - Kubernetes cluster must have priority class *user-normal* defined.
-- Kubernetes cluster must have *container-registry-pullsecret* pull secret for the GHCR defined in the target namespace *example-net*.
 
 All the WSS DevOps platform Kubernetes clusters satisfied all requirements.
 
 Priority classes are defined here ```k8s-argo-mgmt-cl1-sol/platform/common/1/platform.yaml```
-
-Ask Cloud&DevOps team *container-registry-pullsecret* pull secret for the GHCR.
 
 Application's configuration can be done using the custom *--values values.yaml*
 
@@ -208,10 +205,10 @@ settings:
 
 ##### Install the remote Helm Chart
 
-Login to GHCR previosuly.
+Chart versions 1.2.1 and earlier default to an old image location. To install one of them, add `--set image.repository=ghcr.io/mchudinov/example-net-docker`.
 
 ```sh
-helm install example-net oci://ghcr.io/wss-ea-cloud-devops/example-net-helm --namespace example-net --create-namespace --values values.yaml
+helm install example-net oci://ghcr.io/mchudinov/example-net-helm --namespace example-net --create-namespace --values values.yaml
 ```
 
 ##### Install the local Helm Chart

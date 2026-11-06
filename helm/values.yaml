@@ -2,11 +2,11 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/wss-ea-cloud-devops/example-net-docker
+  repository: ghcr.io/mchudinov/example-net-docker
   pullPolicy: Always
   tag: ""
 
-imagePullSecrets: [{ name: container-registry-pullsecret }]
+imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 

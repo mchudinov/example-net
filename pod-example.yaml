@@ -4,15 +4,13 @@ metadata:
   namespace: example-net
   name: example-net-test
 spec:
-  imagePullSecrets:
-    - name: container-registry-pullsecret
   securityContext:
     runAsUser: 1000
     runAsGroup: 1000
     fsGroup: 1000 
   containers:
   - name: example-net
-    image: ghcr.io/wss-ea-cloud-devops/example-net-docker:0.2.10
+    image: ghcr.io/mchudinov/example-net-docker:1.2.1
     imagePullPolicy: Always
     ports:
     - name: http
