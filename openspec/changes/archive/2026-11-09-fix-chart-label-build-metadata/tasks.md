@@ -59,12 +59,24 @@ Run commands from the repo root in Git Bash unless a task says otherwise. In the
 - [x] 6.1 Verify that `openspec validate fix-chart-label-build-metadata --strict` passes.
 
   *Result (2026-11-09):* `Change 'fix-chart-label-build-metadata' is valid`.
-- [ ] 6.2 Commit on `main`, and confirm that `git ls-files --eol .github/scripts/check-chart-labels.sh` shows `i/lf`, because a script committed with CRLF fails on the Linux runner. Ask the user, and push. Verify with `gh run list --commit <sha>` and the run's jobs that `Build-Helm` succeeded including the new steps, that `Build-and-Push-Helm` and `Sign-Helm-Chart` were skipped, and that `Build-Docker` didn't run. This is the k3d install's first real run. If the run fails, stop and don't tag.
+- [x] 6.2 Commit on `main`, and confirm that `git ls-files --eol .github/scripts/check-chart-labels.sh` shows `i/lf`, because a script committed with CRLF fails on the Linux runner. Ask the user, and push. Verify with `gh run list --commit <sha>` and the run's jobs that `Build-Helm` succeeded including the new steps, that `Build-and-Push-Helm` and `Sign-Helm-Chart` were skipped, and that `Build-Docker` didn't run. This is the k3d install's first real run. If the run fails, stop and don't tag.
+
+  *Result (2026-11-09):* commit `0943829`, script `i/lf`, run 42620918226. It was the only run for that commit and it succeeded, including the three new steps. The label check reported the same counts as locally (32 and 37 values valid). The `+` package installed on k3d with `STATUS: deployed` in namespace `build-metadata`, so a real API server accepted it. `Build-and-Push-Helm` and `Sign-Helm-Chart` were skipped.
 
 ## 7. Release 1.3.1
 
-- [ ] 7.1 Once task 6.2 is green, ask the user, then tag `v1.3.1` on that commit and push only the tag (design D9). Verify that `git ls-remote --tags origin v1.3.1` points at the commit from task 6.2.
-- [ ] 7.2 Verify that the `Build-Docker` run for `v1.3.1` and the `Build-Helm` run that follows it both succeeded, including publishing and signing, and that `helm/Chart.yaml` on `origin/main` shows `version` and `appVersion` as `1.3.1` from the bot's commit.
-- [ ] 7.3 Verify that `docker buildx imagetools inspect ghcr.io/mchudinov/example-net-docker:1.3.1` lists `linux/amd64` and `linux/arm64`.
-- [ ] 7.4 Verify the released chart with no credentials: `HELM_REGISTRY_CONFIG=<scratchpad>/no-credentials.json helm pull oci://ghcr.io/mchudinov/example-net-helm --version 1.3.1 -d <scratchpad>/chart-pull` succeeds, `helm show chart` on the pulled package reports `version` and `appVersion` as `1.3.1`, and its default and blue-green renders have no label with the key `chart`.
-- [ ] 7.5 Tell the user that the Flux source has to point at chart 1.3.1 (design Migration Plan). Verify by recording here that the Flux install wasn't tested from this repo, along with the result if the user reports one.
+- [x] 7.1 Once task 6.2 is green, ask the user, then tag `v1.3.1` on that commit and push only the tag (design D9). Verify that `git ls-remote --tags origin v1.3.1` points at the commit from task 6.2.
+
+  *Result (2026-11-09):* `v1.3.1` points at `094382999e3c2225c2dcdce0105fe996a753ed36`, the commit from task 6.2.
+- [x] 7.2 Verify that the `Build-Docker` run for `v1.3.1` and the `Build-Helm` run that follows it both succeeded, including publishing and signing, and that `helm/Chart.yaml` on `origin/main` shows `version` and `appVersion` as `1.3.1` from the bot's commit.
+
+  *Result:* `Build-Docker` run 42621309630 and `Build-Helm` run 42621519820 both succeeded, with every job green, including `Sign-Docker-Image`, `Build-and-Push-Helm` and `Sign-Helm-Chart`. The bot's commit `376a2cb` set `version: 1.3.1` and `appVersion: "1.3.1"`.
+- [x] 7.3 Verify that `docker buildx imagetools inspect ghcr.io/mchudinov/example-net-docker:1.3.1` lists `linux/amd64` and `linux/arm64`.
+
+  *Result:* the image lists `linux/amd64` and `linux/arm64`, plus their attestation manifests.
+- [x] 7.4 Verify the released chart with no credentials: `HELM_REGISTRY_CONFIG=<scratchpad>/no-credentials.json helm pull oci://ghcr.io/mchudinov/example-net-helm --version 1.3.1 -d <scratchpad>/chart-pull` succeeds, `helm show chart` on the pulled package reports `version` and `appVersion` as `1.3.1`, and its default and blue-green renders have no label with the key `chart`.
+
+  *Result:* the pull succeeded with digest `sha256:ba4fe05f5759…`. `helm show chart` reports `1.3.1` for both fields. The default and blue-green renders have no `chart` label, 4 and 5 `helm.sh/chart` labels, and image `ghcr.io/mchudinov/example-net-docker:1.3.1`.
+- [x] 7.5 Tell the user that the Flux source has to point at chart 1.3.1 (design Migration Plan). Verify by recording here that the Flux install wasn't tested from this repo, along with the result if the user reports one.
+
+  *Result:* the user was told. The Flux install was not tested from this repo, and no result has been reported yet.
