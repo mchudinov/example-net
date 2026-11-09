@@ -7,10 +7,16 @@ on:
     types: [completed]    
   push:
     branches: [main]
-    paths: ['helm/**']      
+    paths:
+      - 'helm/**'
+      - '.github/workflows/build-helm.yaml'
+      - '.github/scripts/check-chart-labels.sh'
   pull_request:
     branches: [main]
-    paths: ['helm/**']
+    paths:
+      - 'helm/**'
+      - '.github/workflows/build-helm.yaml'
+      - '.github/scripts/check-chart-labels.sh'
 
 env:
   REGISTRY: ghcr.io/${{ github.repository_owner }}
@@ -73,6 +79,28 @@ jobs:
       run: |
         helm install --dry-run --generate-name ./
 
+    # Flux installs a chart from an OCIRepository with the digest appended to its version, and "+" is invalid in a
+    # label value. Built before "Package helm" because .helmignore doesn't exclude *.tgz.
+    - name: Package helm with build metadata in the version
+      id: helm-package-build-metadata
+      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+      run: |
+        VERSION="${{ steps.helm-chart-catch.outputs.CHART_VERSION }}+662a06b343e7"
+        helm package ./ --version "$VERSION" --destination "$RUNNER_TEMP"
+        echo "CHART_PACKAGE=$RUNNER_TEMP/${{ steps.helm-chart-catch.outputs.CHART_NAME }}-$VERSION.tgz">>${GITHUB_OUTPUT}
+
+    # Together these value sets render every template that sets labels. A default install reaches only three of
+    # them, and k3d has no CRDs for the Rollout. A new flag that guards a template with labels must be added here.
+    - name: Check label values with build metadata in the version
+      env:
+        CHART_PACKAGE: ${{ steps.helm-package-build-metadata.outputs.CHART_PACKAGE }}
+      run: |
+        bash .github/scripts/check-chart-labels.sh "$CHART_PACKAGE" \
+          --set ingress.enabled=true --set autoscaling.enabled=true
+        bash .github/scripts/check-chart-labels.sh "$CHART_PACKAGE" \
+          --set rollout.enabled=true --set rollout.strategy=bluegreen \
+          --set rollout.ingress.enabled=true --set autoscaling.enabled=true
+
     - name: Package helm
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
       run: helm package ./
@@ -80,6 +108,12 @@ jobs:
     - name: Test install helm chart
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
       run: helm install ./"${{steps.helm-chart-catch.outputs.CHART_NAME}}-${{steps.helm-chart-catch.outputs.CHART_VERSION}}.tgz" --generate-name
+
+    # Its own namespace: object names come from the chart name, so they would collide with the install above.
+    - name: Test install helm chart with build metadata in the version
+      env:
+        CHART_PACKAGE: ${{ steps.helm-package-build-metadata.outputs.CHART_PACKAGE }}
+      run: helm install "$CHART_PACKAGE" --generate-name --namespace build-metadata --create-namespace
 
     # Optional steps check Helm chart with Fairwinds Polaris tool
     - name: Setup Polaris

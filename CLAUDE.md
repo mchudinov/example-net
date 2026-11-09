@@ -132,10 +132,13 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
    - build and push `ghcr.io/<owner>/example-net-docker:<version>` for `linux/amd64` and `linux/arm64` (one multi-platform image, with its `platforms` list identical to Check-Docker's);
    - sign it with cosign (keyless, no Rekor);
    - have a bot rewrite `helm/Chart.yaml` `version` and `appVersion` to the tag version and commit to `main`.
-4. **Build-Helm** runs in three situations: when Build-Docker completes, on pushes and PRs to `main` that touch `helm/**`, and on manual runs. After a Build-Docker run, it continues only if that run succeeded. Build-Helm finds Build-Docker by name, so don't rename that workflow.
+4. **Build-Helm** runs in three situations: when Build-Docker completes, on pushes and PRs to `main` that touch `helm/**`, its own workflow file or `.github/scripts/check-chart-labels.sh`, and on manual runs. After a Build-Docker run, it continues only if that run succeeded. Build-Helm finds Build-Docker by name, so don't rename that workflow.
    - **Every run checks the chart:**
      - `helm lint . --strict`
      - install into a k3d cluster
+     - build-metadata checks, on a package whose version has the form Flux produces (`<version>+662a06b343e7`):
+       - `.github/scripts/check-chart-labels.sh` renders it with two value sets and fails on any invalid label value. Together the sets render every template that sets labels, so a new flag guarding a template with labels must be added to a set in `build-helm.yaml`.
+       - install into the same k3d cluster, in its own namespace, because object names come from the chart name and would collide with the first install
      - Fairwinds Polaris audit with `.github/polaris-config.yaml`; fails on any "danger" finding or a score below 90
    - **Only a run that follows a successful Build-Docker (a release) publishes:**
      - push the chart to GHCR as OCI `example-net-helm`
@@ -144,7 +147,7 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
      Pushes, PRs and manual runs publish nothing. So a released chart version is never overwritten, even though `main`'s chart can get ahead of the last release.
    - **If a release's chart publishing fails,** fix the cause and push the next patch tag. A manual run can't publish.
 
-Do not hand-edit the `Chart.yaml` version fields; the tag drives them. Changes to the chart's securityContext, probes or resources must keep the Polaris audit passing.
+Do not hand-edit the `Chart.yaml` version fields; the tag drives them. Put `.Chart.Version` in a label only through the `app.chart` helper, which replaces `+`. Changes to the chart's securityContext, probes or resources must keep the Polaris audit passing.
 
 ## OpenSpec
 
