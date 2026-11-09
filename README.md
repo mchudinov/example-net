@@ -71,7 +71,7 @@ helm package ./
 
 Application will be build and packed automatically after pushing a new tag.
 
-Tag's name **must** start with **v** letter. For example **v1.2.3**
+Tag's name **must** have the form **vMAJOR.MINOR.PATCH**. For example **v1.2.3**. Any other tag that starts with **v**, such as the release candidate v1.2.3-rc.1, fails at once and publishes nothing.
 
 Docker image and Helm chart will be versioned after the tag:
 

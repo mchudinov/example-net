@@ -1,7 +1,6 @@
 name: Build-Docker
 
 on:
-  workflow_dispatch:
   push:
     tags: ['v*']
 
@@ -16,8 +15,22 @@ env:
   BRANCH: main
   
 jobs:
+  # Every other job waits for this one, so a malformed tag fails in seconds and publishes nothing.
+  Check-Tag:
+    runs-on: ubuntu-latest
+    permissions: {}
+
+    steps:
+    - name: Check that the tag is an exact release version
+      run: |
+        if [[ ! "$GITHUB_REF" =~ ^refs/tags/v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+          echo "::error::$GITHUB_REF is not a release tag. Use vMAJOR.MINOR.PATCH with no suffix, for example v1.3.2. Release candidates are not allowed."
+          exit 1
+        fi
+
   # Release gate: build and test the tagged source first; every later job depends on it.
   Test:
+    needs: Check-Tag
     uses: ./.github/workflows/build-dotnet.yaml
     permissions:
       contents: read
@@ -44,8 +57,6 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
-          type=ref,event=branch
-          type=ref,event=pr
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
 

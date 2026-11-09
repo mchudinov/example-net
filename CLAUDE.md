@@ -128,7 +128,7 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
    It runs in parallel with Build-Dotnet. `tests/**` and `helm/**` changes don't trigger it, because `.dockerignore` keeps `tests/` out of the build.
 
    **Never name it `Build-Docker`.** Build-Helm starts on any completed run with that name, and publishes the chart when it succeeded.
-3. Pushing a `v*` tag runs **Build-Docker**. Its first job, `Test`, calls Build-Dotnet as a release gate. Everything after it runs only if the tests pass:
+3. Pushing a `v*` tag runs **Build-Docker**, which has no manual trigger. Its first job, `Check-Tag`, fails any tag other than `vX.Y.Z`, including a release candidate such as `v1.3.2-rc.1`. The next job, `Test`, calls Build-Dotnet as a release gate. Everything after it runs only if the tests pass:
    - build and push `ghcr.io/<owner>/example-net-docker:<version>` for `linux/amd64` and `linux/arm64` (one multi-platform image, with its `platforms` list identical to Check-Docker's);
    - sign it with cosign (keyless, no Rekor);
    - have a bot rewrite `helm/Chart.yaml` `version` and `appVersion` to the tag version and commit to `main`.
