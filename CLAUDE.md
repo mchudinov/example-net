@@ -145,7 +145,7 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
      - cosign-sign the chart
 
      Pushes, PRs and manual runs publish nothing. So a released chart version is never overwritten, even though `main`'s chart can get ahead of the last release.
-   - **If a release's chart publishing fails,** fix the cause and push the next patch tag. A manual run can't publish.
+   - **If a release's chart publishing fails,** use **Re-run failed jobs** on that Build-Helm run when the cause was a one-off, such as a stuck k3d cluster. It keeps the release's commit and should publish, but that path hasn't been used on a release yet. If the cause needs a commit, fix it and push the next patch tag. A manual run can't publish.
 
 Do not hand-edit the `Chart.yaml` version fields; the tag drives them. Put `.Chart.Version` in a label only through the `app.chart` helper, which replaces `+`. Changes to the chart's securityContext, probes or resources must keep the Polaris audit passing. Reference third-party actions by a release tag or a commit SHA, never a branch. The `setup-polaris` ref only picks the installer; `POLARIS_VERSION` picks the binary.
 

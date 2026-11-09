@@ -65,8 +65,11 @@ jobs:
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
       run: helm lint . --strict
       
+    # k3d waits for its nodes with no limit of its own. The timeout kills only the k3d client, so the containers stay for the next step.
     - name: Create a test k3d cluster for dry-run install
+      id: k3d
       uses: AbsaOSS/k3d-action@v2
+      timeout-minutes: 5
       with:
         cluster-name: "test-cluster"
         # The action runs k3d's install.sh from its main branch. That script also downloads the release's
@@ -74,6 +77,16 @@ jobs:
         k3d-version: v5.9.0
         args: --agents 1
   
+    - name: Show the k3d containers and logs after a failed cluster start
+      if: failure() && steps.k3d.outcome == 'failure'
+      run: |
+        docker ps -a --filter label=app=k3d
+        for container in $(docker ps -aq --filter label=app=k3d); do
+          echo "::group::$(docker inspect --format '{{.Name}}' "$container")"
+          docker logs "$container" || true
+          echo "::endgroup::"
+        done
+
     - name: Dry-run install
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
       run: |
