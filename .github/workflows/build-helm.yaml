@@ -75,7 +75,7 @@ jobs:
         # The action runs k3d's install.sh from its main branch. That script also downloads the release's
         # checksums.txt (k3d-io/k3d#1653), which the action's default k3d v5.4.6 doesn't publish (HTTP 404).
         k3d-version: v5.9.0
-        args: --agents 1 --k3s-arg "--server=https://192.0.2.1:6443@agent:0"
+        args: --agents 1
   
     - name: Show the k3d containers and logs after a failed cluster start
       if: failure() && steps.k3d.outcome == 'failure'
