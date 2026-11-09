@@ -21,7 +21,7 @@ Run commands from the repo root in Git Bash.
   *Result (2026-11-09):* the comment is at line 119 and the reference at line 121. `POLARIS_VERSION` still reads `8.5.5`.
 - [x] 2.3 Verify that `grep -rnE 'uses:.*@(main|master)\b' .github/workflows` finds nothing (spec: "Workflows reference no branches"), that both `signing_config.v0.2.json` curl lines are unchanged (design D5), and that `git diff --stat .github/workflows` shows two files with 4 insertions and 3 deletions.
 
-  *Result (2026-11-09):* the grep finds nothing, neither curl line appears in the diff, and the stat is 2 files, 4 insertions, 3 deletions.
+  *Result (2026-11-09):* the grep finds nothing, neither curl line appears in the diff, and the stat is 2 files, 4 insertions, 3 deletions. The spec covers every branch name, and the grep only covers `main` and `master`, so all 12 unique third-party references were also checked with `gh api` against `git/ref/tags/<ref>` and `git/ref/heads/<ref>`: each exists as a tag, and none as a branch.
 
 ## 3. Docs
 
@@ -34,5 +34,11 @@ Run commands from the repo root in Git Bash.
 - [x] 4.1 Verify that `openspec validate pin-floating-action-refs --strict` passes.
 
   *Result (2026-11-09):* `Change 'pin-floating-action-refs' is valid`.
-- [ ] 4.2 Commit on `main`. Ask the user, and push. Verify with `gh run list --commit <sha>` and the run's jobs that `Build-Helm` succeeded, including `Setup Polaris` and `Use Polaris`, that `Build-and-Push-Helm` and `Sign-Helm-Chart` were skipped, and that `Build-Docker` didn't run. In the `Setup Polaris` log, verify that the action resolved to `v10.2.6` and that the download URL names `8.5.5` (spec: "Chart audit uses the version the workflow names"). If the run fails, stop and tell the user.
-- [ ] 4.3 Tell the user that the cosign pins haven't run, and that the next `v*` tag is their first run (design D6, Migration Plan). Verify by recording here that this change checked them only by reading the lines and by task 1.1, and did not cut a release.
+- [x] 4.2 Commit on `main`. Ask the user, and push. Verify with `gh run list --commit <sha>` and the run's jobs that `Build-Helm` succeeded, including `Setup Polaris` and `Use Polaris`, that `Build-and-Push-Helm` and `Sign-Helm-Chart` were skipped, and that `Build-Docker` didn't run. In the `Setup Polaris` log, verify that the action resolved to `v10.2.6` and that the download URL names `8.5.5` (spec: "Chart audit uses the version the workflow names"). If the run fails, stop and tell the user.
+
+  *Result (2026-11-09):* commit `f08dc52`, run 42646174236. It was the only run for that commit and it succeeded, including `Setup Polaris` and `Use Polaris`. `Build-and-Push-Helm` and `Sign-Helm-Chart` were skipped, and `Build-Docker` didn't run. The log shows `FairwindsOps/polaris@v10.2.6` resolved to `6e76dd36aea6a5d8dd380ddf3e9199a83d252c55`, the action built on `alpine:3.24`, and the download URL names `8.5.5`.
+
+  *Found during this check, not caused by this change and not fixed here:* `Use Polaris` reports `Final score: 86` and still passes, as did the three earlier runs that show a score (42621519820, 42620918226, 42220906429). The step's `run:` is a plain YAML scalar, so its line breaks fold and the backslashes stay in the command. The arguments ` --helm-values`, ` --only-show-failed-tests`, ` --set-exit-code-below-score` and ` --config` then reach Polaris with a leading space and aren't read as flags. So the score threshold and `.github/polaris-config.yaml` aren't applied. `--format=pretty` and `--set-exit-code-on-danger` aren't preceded by a backslash and still work.
+- [x] 4.3 Tell the user that the cosign pins haven't run, and that the next `v*` tag is their first run (design D6, Migration Plan). Verify by recording here that this change checked them only by reading the lines and by task 1.1, and did not cut a release.
+
+  *Result (2026-11-09):* the user was told. This change checked the cosign pins only by reading the lines and by task 1.1, and did not cut a release.

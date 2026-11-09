@@ -146,3 +146,82 @@ A change to the chart workflow or to the label check SHALL itself run the chart 
 #### Scenario: Change to the checks runs them
 - **WHEN** a push to `main` changes only the chart workflow or the label check
 - **THEN** the chart checks run, and no chart is published or signed
+
+### Requirement: Third-party actions are never referenced by a branch
+Every reference in a workflow to an action or reusable workflow from another repository SHALL name a release tag or a full commit SHA. It SHALL NOT name a branch.
+
+The action that installs the signing tool SHALL be referenced by an exact release that can't be moved, or by a full commit SHA, so that a different version runs only after a commit in this repo changes the reference.
+
+The chart checks SHALL audit the chart with the audit tool version that the chart workflow names, whichever release of the installing action the workflow references.
+
+This requirement covers the references themselves. It doesn't cover files that an action or a step downloads while it runs.
+
+#### Scenario: Workflows reference no branches
+- **WHEN** the workflows in `.github/workflows/` are read
+- **THEN** every reference to an action or reusable workflow in another repository names a release tag or a full commit SHA, and none names a branch
+
+#### Scenario: Signing tool installer can't change without a commit
+- **WHEN** a release run signs the container image or the chart
+- **THEN** the action that installs the signing tool comes from an exact release that can't be moved, or from a full commit SHA
+
+#### Scenario: Chart audit uses the version the workflow names
+- **WHEN** the chart checks run
+- **THEN** the audit runs with the audit tool version that the chart workflow names
+
+### Requirement: Chart checks enforce the audit policy
+Every run of the chart checks SHALL audit the chart with the repository's audit configuration, and not with the audit tool's default configuration.
+
+The run SHALL fail if either of these holds:
+- the audit reports a danger finding;
+- the audit score is below the threshold that the chart workflow names.
+
+A run in which the audit fails SHALL NOT publish or sign a chart.
+
+#### Scenario: Chart that meets the policy passes
+- **WHEN** the chart checks run on a chart with no danger findings and a score at or above the threshold
+- **THEN** the audit step succeeds
+
+#### Scenario: Danger finding fails the check
+- **WHEN** the chart checks run on a chart with a danger finding, for example a container that allows privilege escalation
+- **THEN** the audit step fails, and its output names the finding
+
+#### Scenario: Score below the threshold fails the check
+- **WHEN** the chart checks run on a chart whose audit score is below the threshold
+- **THEN** the audit step fails, and its output states the score and the threshold
+
+#### Scenario: Repository configuration decides the checks
+- **WHEN** the audit runs
+- **THEN** the checks it evaluates, and their severities, are the ones in the repository's audit configuration
+
+#### Scenario: Failed audit blocks publishing
+- **WHEN** the audit fails during the chart run that follows a release
+- **THEN** no chart is published or signed
+
+### Requirement: Chart checks stop waiting for a test cluster that doesn't come up
+Every run of the chart checks SHALL limit how long it waits for the test cluster to be ready. The chart workflow SHALL name the limit. The run SHALL fail if the test cluster isn't ready within the limit.
+
+When creating the test cluster fails or reaches the limit, the run SHALL show in its log:
+- each of the cluster's containers and its status;
+- the logs of each of those containers.
+
+A run in which the test cluster doesn't come up SHALL NOT publish or sign a chart.
+
+#### Scenario: Healthy cluster continues as before
+- **WHEN** the chart checks run and the test cluster is ready within the limit
+- **THEN** the checks continue, and the run's log shows no container logs from the cluster
+
+#### Scenario: Stuck cluster fails at the limit
+- **WHEN** a node of the test cluster doesn't become ready within the limit
+- **THEN** the step that creates the cluster fails at the limit, and the run ends as failed instead of staying in progress
+
+#### Scenario: Failed cluster leaves evidence
+- **WHEN** creating the test cluster fails or reaches the limit
+- **THEN** the run's log lists the cluster's containers with their status, and shows the logs of each one
+
+#### Scenario: Other failures don't show cluster logs
+- **WHEN** a chart check other than creating the test cluster fails
+- **THEN** the run's log shows no container logs from the cluster
+
+#### Scenario: Stuck cluster blocks publishing
+- **WHEN** the test cluster doesn't come up during the chart run that follows a release
+- **THEN** no chart is published or signed

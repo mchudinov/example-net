@@ -11,7 +11,7 @@ The motivation is in proposal.md (Why). This is the current state that shapes th
   - On failure, k3d deletes the cluster unless `--no-rollback` is set (`cmd/cluster/clusterCreate.go:157-166`).
   - Its wait loop checks the deadline when a log line arrives (`pkg/client/node.go:849`). A silent node is interrupted only if the Docker client aborts the blocked read, which hasn't been checked.
   - Every container it creates has the label `app=k3d` (`pkg/types/defaults.go:44`).
-- **What the runner does.** `timeout-minutes` applies to any step. On expiry the step's result is `Failed`, with the message `The action '<name>' has timed out after <n> minutes.` (`actions/runner`, `src/Runner.Worker/StepsRunner.cs:296-329`). The composite handler takes the same branch (`Handlers/CompositeActionHandler.cs:495-502`). A failed step lets `if: failure()` steps run.
+- **What the runner does.** `timeout-minutes` applies to any step. On expiry the step's result is `Failed`, with the message `The action '<name>' has timed out after <n> minutes.` (`actions/runner`, `src/Runner.Worker/StepsRunner.cs:296-329`). The composite handler takes the same branch with a shorter message, `The action has timed out.` (`Handlers/CompositeActionHandler.cs:495-502`), and that's the one this step shows. A failed step lets `if: failure()` steps run.
 - **What a re-run does.** GitHub's docs say a re-run keeps the original `GITHUB_SHA` and `GITHUB_REF`, that re-running failed jobs also re-runs the jobs that depend on them, and that a run can be re-run for up to 30 days.
   - The last release-triggered run, 42621519820, ran on `376a2cb`, the bot's `Chart.yaml` commit, so a re-run would package the right chart version.
   - Runs 42656239890 and 41692729560 kept their `push` event on attempt 2.
@@ -87,7 +87,7 @@ The work goes directly on `main`, as this repo does. The user is asked before ea
 - **[The kill removes the containers]** k3d's entry points show no signal handler, and today's cancel printed no rollback, but neither proves the containers survive. → Task 4.2 checks it. If they're gone, the limit still works and D4 is revisited.
 - **[Re-running is unproven on a release]** It can't be tested without publishing over a released chart. → `CLAUDE.md` says so, and the next patch tag still works if a re-run doesn't publish.
 - **[Node logs are public]** The repository is public. → The logs come from a cluster that's thrown away with the runner, and no repository secret goes into it.
-- **[A tag during the forced hang]** A release between the temporary commit and its revert would stop at the chart checks. → Task 4.1 forbids a tag until the revert is pushed, a window of about ten minutes.
+- **[A tag during the forced hang]** A release between the temporary commit and its revert would stop at the chart checks. → Task 4.1 forbids a tag until the revert is pushed. The window was planned at about ten minutes and lasted 75, and no tag was pushed in it.
 - **[The trigger doesn't hang on the runner]** The step would pass or fail fast and prove nothing. → Task 4.2 stops there, the commit is reverted, and the user decides what's next.
 - **[Temporary commits in the history]** `main` gets one temporary commit and its revert. → Accepted (D6).
 
