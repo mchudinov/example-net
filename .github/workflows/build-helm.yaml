@@ -116,8 +116,9 @@ jobs:
       run: helm install "$CHART_PACKAGE" --generate-name --namespace build-metadata --create-namespace
 
     # Optional steps check Helm chart with Fairwinds Polaris tool
+    # The ref only picks this installer. POLARIS_VERSION picks the binary it downloads, so the two can differ.
     - name: Setup Polaris
-      uses: FairwindsOps/polaris/.github/actions/setup-polaris@master
+      uses: FairwindsOps/polaris/.github/actions/setup-polaris@v10.2.6
       with:
         version: ${{ env.POLARIS_VERSION }}
 
@@ -174,7 +175,7 @@ jobs:
           password: ${{ env.GHCR_PASSWORD }}
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@main
+        uses: sigstore/cosign-installer@v4.1.3
 
       - name: Create signing config without Rekor
         run: |
