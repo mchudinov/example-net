@@ -126,17 +126,41 @@
 
 ## 6. Real runs
 
-- [ ] 6.1 Ask before pushing. Optionally commit the archived `enforce-release-tag-format` change first, naming only its paths in `git commit -- <paths>`, so that the staged rename stays out of it. Check each commit with `git show --stat HEAD`. Then commit this change and push it to `main`. Verify:
+- [x] 6.1 Ask before pushing. Optionally commit the archived `enforce-release-tag-format` change first, naming only its paths in `git commit -- <paths>`, so that the staged rename stays out of it. Check each commit with `git show --stat HEAD`. Then commit this change and push it to `main`. Verify:
   - Build-Helm runs as a push run and succeeds, with no publishing job;
   - its "Extract chart info" log shows that the guard didn't fire and the version came from the fallback, 1.3.1, which proves `inputs.version` is empty on a branch push;
   - the `helm-chart` artifact, downloaded with `gh run download <id> -n helm-chart`, holds `example-net-helm-1.3.1.tgz`, and `helm show chart` on it shows `version` and `appVersion` 1.3.1;
   - Build-Dotnet and Check-Docker run for their own workflow file changes and pass;
   - no Release run starts;
   - GHCR's image and chart tags are unchanged.
-- [ ] 6.2 Ask before pushing, then push the tag `vtag-check-test` on the landed commit. This is the first time GitHub reads `release.yaml` and its call to Build-Helm. Verify:
+
+  Result: commits `ef575aa` (the archive) and `6fcf9d6` (this change), pushed together.
+  - Build-Helm run 42817635737, Build-Dotnet run 42817635653 and Check-Docker run 42817635680 all succeeded. Build-Helm had only the `Check-Helm` job.
+  - Its log shows `INPUT_VERSION` empty, the guard not firing, and chart version 1.3.1 from the fallback.
+  - The downloaded `helm-chart` artifact held `example-net-helm-1.3.1.tgz` with `version` and `appVersion` 1.3.1.
+  - No Release run started.
+  - GHCR's tags were unchanged (images `1.0` to `1.3.1` and `latest`, charts `1.0.0` to `1.3.1`), and `main` was at `6fcf9d6`.
+- [x] 6.2 Ask before pushing, then push the tag `vtag-check-test` on the landed commit. This is the first time GitHub reads `release.yaml` and its call to Build-Helm. Verify:
   - the Release run fails at `Check-Tag` with the error naming the tag, and not at startup as an invalid workflow with no job logs. A startup failure would mean the file or the call is broken, and a real release would fail the same way;
   - `Test`, `Check-Helm`, `Build-and-Push-Docker`, `Sign-Docker-Image`, `Push-Helm` and `Sign-Helm-Chart` are skipped;
   - no Build-Helm run starts;
   - GHCR is unchanged and `main` has no new commit.
-- [ ] 6.3 Delete `vtag-check-test` locally and on GitHub. Verify with `git ls-remote --tags origin` that only `v1.0.0` to `v1.3.1` remain.
-- [ ] 6.4 Record here that the valid-tag path gets its first full run at the next `vX.Y.Z` release, and so do both re-run paths. List the checks from step 4 of the migration plan in `design.md`.
+
+  Result: Release run 42817873564 on `6fcf9d6`.
+  - It listed all 7 jobs, so GitHub accepted the workflow and its call to Build-Helm; it didn't fail at startup.
+  - `Check-Tag` failed with `refs/tags/vtag-check-test is not a release tag. Use vMAJOR.MINOR.PATCH with no suffix`, and the other 6 jobs were skipped.
+  - It was the only run started by the tag.
+  - GHCR's tags were unchanged, and `main` stayed at `6fcf9d6`.
+- [x] 6.3 Delete `vtag-check-test` locally and on GitHub. Verify with `git ls-remote --tags origin` that only `v1.0.0` to `v1.3.1` remain. Result: deleted in both places. Only `v1.0.0` to `v1.3.1` remain, locally and on GitHub, and deleting the tag started no run.
+- [x] 6.4 Record here that the valid-tag path gets its first full run at the next `vX.Y.Z` release, and so do both re-run paths. List the checks from step 4 of the migration plan in `design.md`. Recorded: no valid tag has run through Release yet. Locally, valid tags pass `Check-Tag` and write their version, and the package path works at 1.3.2. On GitHub, the check-only path and the rejected-tag path have both run. Three things are still unproven:
+  - the `version` handoff from `Check-Tag` to Build-Helm;
+  - publishing and signing the chart from Release;
+  - **Re-run failed jobs** and **Re-run all jobs** on a Release run.
+
+  The next `vX.Y.Z` release (1.3.2 or higher) is the first full run. Check:
+  - one Release run with the job graph in `design.md`, and `Check-Helm`'s checkout at the tag commit;
+  - `helm show chart oci://ghcr.io/mchudinov/example-net-helm --version X.Y.Z` shows `version` and `appVersion` `X.Y.Z`;
+  - the pulled `.tgz` has the same SHA-256 as the run's `helm-chart` artifact;
+  - `cosign verify` passes for the image and the chart;
+  - `main` has no new commit from the run;
+  - Flux picks up `X.Y.Z`.
