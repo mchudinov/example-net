@@ -1,10 +1,30 @@
 name: Build-Helm
 
+# Checks the chart and publishes nothing. Release calls it before it pushes the image, then publishes the
+# package this workflow uploads.
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: [Build-Docker]
-    types: [completed]    
+  # Path filters do not apply to calls.
+  workflow_call:
+    inputs:
+      version:
+        description: Version and app version to package the chart at, without the leading v. Empty means Chart.yaml's version.
+        type: string
+        required: false
+        default: ''
+    outputs:
+      chart_name:
+        description: The chart's name
+        value: ${{ jobs.Check-Helm.outputs.chart_name }}
+      chart_version:
+        description: The version the checked package was built at
+        value: ${{ jobs.Check-Helm.outputs.chart_version }}
+      chart_file:
+        description: File name of the checked package, uploaded as the helm-chart artifact
+        value: ${{ jobs.Check-Helm.outputs.chart_file }}
+      registry_lowercase:
+        description: The registry namespace, in lowercase
+        value: ${{ jobs.Check-Helm.outputs.registry_lowercase }}
   push:
     branches: [main]
     paths:
@@ -20,23 +40,19 @@ on:
 
 env:
   REGISTRY: ghcr.io/${{ github.repository_owner }}
-  GHCR_USERNAME: ${{ github.actor }}
-  GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-  OIDC_ISSUER: https://token.actions.githubusercontent.com
   HELM_WORKING_DIRECTORY: helm
   POLARIS_VERSION: 8.5.5
   POLARIS_EXIT_SCORE: 90
 
 jobs:
   Check-Helm:
-    # After a Build-Docker run, publish only if that run succeeded ("completed" also fires on failure).
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
     outputs:
       chart_version: ${{ steps.helm-chart-catch.outputs.CHART_VERSION }}
       chart_name: ${{ steps.helm-chart-catch.outputs.CHART_NAME }}
-      registry_lowercase: ${{ steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE }}      
+      registry_lowercase: ${{ steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE }}
+      chart_file: ${{ steps.helm-package.outputs.CHART_FILE }}
 
     steps:
     - uses: actions/checkout@v7
@@ -45,13 +61,23 @@ jobs:
       uses: azure/setup-helm@v5
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
+    # Release passes the tag's version; every other run uses Chart.yaml's, which is a placeholder. A tag push
+    # reaches this step only through Release, so an empty input there means the version wasn't passed on.
+    # Falling back would package the placeholder version, and Release would replace that published chart.
     - name: Extract chart info
       id: helm-chart-catch
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
       run: |
-        echo "CHART_VERSION=$(grep 'version:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_OUTPUT}
-        echo "CHART_NAME=$(grep 'name:' ./Chart.yaml | tail -n1 | awk '{ print $2}')">>${GITHUB_OUTPUT}
+        if [[ -z "$INPUT_VERSION" && "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == refs/tags/* ]]; then
+          echo "::error::No chart version was passed in for $GITHUB_REF. Release must pass the tag's version to this workflow."
+          exit 1
+        fi
+        VERSION="${INPUT_VERSION:-$(sed -n 's/^version: //p' ./Chart.yaml)}"
+        echo "CHART_VERSION=$VERSION">>${GITHUB_OUTPUT}
+        echo "CHART_NAME=$(sed -n 's/^name: //p' ./Chart.yaml)">>${GITHUB_OUTPUT}
         INPUT=${{ env.REGISTRY }}; echo "REGISTRY_LOWERCASE=${INPUT,,}">>${GITHUB_OUTPUT}
 
     - name: Print chart info
@@ -61,10 +87,25 @@ jobs:
         echo Chart version: ${{ steps.helm-chart-catch.outputs.CHART_VERSION }}
         echo GitHub container registry: ${{steps.helm-chart-catch.outputs.REGISTRY_LOWERCASE}}
 
+    # Packaged once. Lint and both installs of this version use this file, and Release publishes this same file.
+    # It goes to $RUNNER_TEMP because .helmignore doesn't exclude *.tgz, so a package left in helm/ would end up
+    # inside the next one.
+    - name: Package helm
+      id: helm-package
+      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+      env:
+        CHART_NAME: ${{ steps.helm-chart-catch.outputs.CHART_NAME }}
+        CHART_VERSION: ${{ steps.helm-chart-catch.outputs.CHART_VERSION }}
+      run: |
+        helm package ./ --version "$CHART_VERSION" --app-version "$CHART_VERSION" --destination "$RUNNER_TEMP"
+        echo "CHART_FILE=$CHART_NAME-$CHART_VERSION.tgz">>${GITHUB_OUTPUT}
+        echo "CHART_PACKAGE=$RUNNER_TEMP/$CHART_NAME-$CHART_VERSION.tgz">>${GITHUB_OUTPUT}
+
     - name: Lint helm
-      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
-      run: helm lint . --strict
-      
+      env:
+        CHART_PACKAGE: ${{ steps.helm-package.outputs.CHART_PACKAGE }}
+      run: helm lint "$CHART_PACKAGE" --strict
+
     # k3d waits for its nodes with no limit of its own. The timeout kills only the k3d client, so the containers stay for the next step.
     - name: Create a test k3d cluster for dry-run install
       id: k3d
@@ -76,7 +117,7 @@ jobs:
         # checksums.txt (k3d-io/k3d#1653), which the action's default k3d v5.4.6 doesn't publish (HTTP 404).
         k3d-version: v5.9.0
         args: --agents 1
-  
+
     - name: Show the k3d containers and logs after a failed cluster start
       if: failure() && steps.k3d.outcome == 'failure'
       run: |
@@ -88,19 +129,22 @@ jobs:
         done
 
     - name: Dry-run install
-      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
-      run: |
-        helm install --dry-run --generate-name ./
+      env:
+        CHART_PACKAGE: ${{ steps.helm-package.outputs.CHART_PACKAGE }}
+      run: helm install --dry-run --generate-name "$CHART_PACKAGE"
 
     # Flux installs a chart from an OCIRepository with the digest appended to its version, and "+" is invalid in a
-    # label value. Built before "Package helm" because .helmignore doesn't exclude *.tgz.
+    # label value.
     - name: Package helm with build metadata in the version
       id: helm-package-build-metadata
       working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
+      env:
+        CHART_NAME: ${{ steps.helm-chart-catch.outputs.CHART_NAME }}
+        CHART_VERSION: ${{ steps.helm-chart-catch.outputs.CHART_VERSION }}
       run: |
-        VERSION="${{ steps.helm-chart-catch.outputs.CHART_VERSION }}+662a06b343e7"
-        helm package ./ --version "$VERSION" --destination "$RUNNER_TEMP"
-        echo "CHART_PACKAGE=$RUNNER_TEMP/${{ steps.helm-chart-catch.outputs.CHART_NAME }}-$VERSION.tgz">>${GITHUB_OUTPUT}
+        VERSION="$CHART_VERSION+662a06b343e7"
+        helm package ./ --version "$VERSION" --app-version "$CHART_VERSION" --destination "$RUNNER_TEMP"
+        echo "CHART_PACKAGE=$RUNNER_TEMP/$CHART_NAME-$VERSION.tgz">>${GITHUB_OUTPUT}
 
     # Together these value sets render every template that sets labels. A default install reaches only three of
     # them, and k3d has no CRDs for the Rollout. A new flag that guards a template with labels must be added here.
@@ -114,13 +158,11 @@ jobs:
           --set rollout.enabled=true --set rollout.strategy=bluegreen \
           --set rollout.ingress.enabled=true --set autoscaling.enabled=true
 
-    - name: Package helm
-      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
-      run: helm package ./
-
+    # No --wait or --atomic: in a release this runs before the release's image is pushed, so the pods can't pull it yet.
     - name: Test install helm chart
-      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
-      run: helm install ./"${{steps.helm-chart-catch.outputs.CHART_NAME}}-${{steps.helm-chart-catch.outputs.CHART_VERSION}}.tgz" --generate-name
+      env:
+        CHART_PACKAGE: ${{ steps.helm-package.outputs.CHART_PACKAGE }}
+      run: helm install "$CHART_PACKAGE" --generate-name
 
     # Its own namespace: object names come from the chart name, so they would collide with the install above.
     - name: Test install helm chart with build metadata in the version
@@ -143,68 +185,12 @@ jobs:
           --set-exit-code-below-score ${{ env.POLARIS_EXIT_SCORE }} \
           --config .github/polaris-config.yaml
 
-  Build-and-Push-Helm:
-    needs: Check-Helm
-    # Only a release (a successful Build-Docker run) publishes; push, PR and manual runs only check. Sign-Helm-Chart skips via needs.
-    if: github.event_name == 'workflow_run'
-    runs-on: ubuntu-latest
-    
-    permissions:
-      contents: read
-      packages: write
-
-    steps:      
-      - uses: actions/checkout@v7    
-
-      - name: Helm installation
-        uses: azure/setup-helm@v5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Package helm
-        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}     
-        run: helm package ./
-
-      - name: Login to GHCR using Helm
-        run: echo ${{ env.GHCR_PASSWORD }}  | helm registry login ghcr.io --username ${{ env.GHCR_USERNAME }} --password-stdin
-
-      - name: Publish chart to GHCR
-        working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
-        run: helm push "${{needs.Check-Helm.outputs.CHART_NAME}}-${{needs.Check-Helm.outputs.CHART_VERSION}}.tgz" oci://${{needs.Check-Helm.outputs.REGISTRY_LOWERCASE}}
-
-  Sign-Helm-Chart:
-    needs: [Check-Helm, Build-and-Push-Helm]
-    runs-on: ubuntu-latest
-    
-    permissions:
-      id-token: write
-      packages: write
-    
-    steps:
-      - name: Login to GitHub container registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ env.GHCR_USERNAME }}
-          password: ${{ env.GHCR_PASSWORD }}
-
-      - name: Install cosign
-        uses: sigstore/cosign-installer@v4.1.3
-
-      - name: Create signing config without Rekor
-        run: |
-          curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
-            | jq 'del(.rekorTlogUrls)' > "$RUNNER_TEMP/signing-config-no-tlog.json"         
-
-      - name: Sign the chart
-        run: |
-          cosign sign ${{needs.Check-Helm.outputs.registry_lowercase}}/${{ needs.Check-Helm.outputs.chart_name }}:${{ needs.Check-Helm.outputs.chart_version }} \
-            --yes \
-            --signing-config "$RUNNER_TEMP/signing-config-no-tlog.json"
-  
-      - name: Verify the signature
-        run: |
-          cosign verify ${{needs.Check-Helm.outputs.registry_lowercase}}/${{ needs.Check-Helm.outputs.chart_name }}:${{ needs.Check-Helm.outputs.chart_version }} \
-            --certificate-identity-regexp '.+github.com\/${{ github.repository_owner }}.+' \
-            --certificate-oidc-issuer ${{ env.OIDC_ISSUER }} \
-            --insecure-ignore-tlog=true
+    # Last, so a run whose checks fail uploads nothing. Release downloads this file and publishes it unchanged.
+    # overwrite lets "Re-run all jobs" upload it again under the same name.
+    - name: Upload the checked chart package
+      uses: actions/upload-artifact@v7
+      with:
+        name: helm-chart
+        path: ${{ steps.helm-package.outputs.CHART_PACKAGE }}
+        if-no-files-found: error
+        overwrite: true

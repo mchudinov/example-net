@@ -1,5 +1,7 @@
-name: Build-Docker
+name: Release
 
+# One run per tag publishes the image and the chart, both built from the tag's commit. A release writes nothing
+# to the repository: the chart's version and appVersion are stamped from the tag when Check-Helm packages it.
 on:
   push:
     tags: ['v*']
@@ -8,17 +10,18 @@ env:
   REGISTRY: ghcr.io/${{ github.repository_owner }}
   IMAGE_NAME: example-net-docker
   DOCKER_WORKING_DIRECTORY: './'
-  HELM_WORKING_DIRECTORY: helm
   GHCR_USERNAME: ${{ github.actor }}
-  GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }} 
+  GHCR_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
   OIDC_ISSUER: https://token.actions.githubusercontent.com
-  BRANCH: main
-  
+
 jobs:
   # Every other job waits for this one, so a malformed tag fails in seconds and publishes nothing.
   Check-Tag:
     runs-on: ubuntu-latest
     permissions: {}
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
     - name: Check that the tag is an exact release version
@@ -28,15 +31,30 @@ jobs:
           exit 1
         fi
 
-  # Release gate: build and test the tagged source first; every later job depends on it.
+    # The release version, without the v. Check-Helm packages the chart at it.
+    - name: Output the release version
+      id: version
+      run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+  # Release gate: build and test the tagged source. The image waits for this and for Check-Helm.
   Test:
     needs: Check-Tag
     uses: ./.github/workflows/build-dotnet.yaml
     permissions:
       contents: read
 
+  # Chart checks, alongside Test. Packages the chart once at the tag's version and uploads it; Push-Helm publishes
+  # that same file.
+  Check-Helm:
+    needs: Check-Tag
+    uses: ./.github/workflows/build-helm.yaml
+    permissions:
+      contents: read
+    with:
+      version: ${{ needs.Check-Tag.outputs.version }}
+
   Build-and-Push-Docker:
-    needs: Test
+    needs: [Test, Check-Helm]
     runs-on: ubuntu-latest
 
     permissions:
@@ -129,43 +147,78 @@ jobs:
           --certificate-oidc-issuer ${{ env.OIDC_ISSUER }} \
           --insecure-ignore-tlog=true
 
-  Update-Chart-Version:
-    needs: Build-and-Push-Docker
+  # Publishes the package Check-Helm checked, and only after the image has been signed.
+  Push-Helm:
+    needs: [Check-Helm, Sign-Docker-Image]
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
+      packages: write
 
     steps:
-    - uses: actions/checkout@v7
+    - name: Helm installation
+      uses: azure/setup-helm@v5
 
-    - name: Print Docker image version
-      run: echo "Docker image version ${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}"
-
-    - name: Print Chart.yaml before change
-      run: cat ${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml
-
-    - name: Change Docker image version and chart version in the Chart.yaml
-      uses: mikefarah/yq@v4.28.2
+    - name: Download the checked chart package
+      uses: actions/download-artifact@v8
       with:
-        cmd: yq -i ' 
-              .version = "${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}" | 
-              .appVersion = "${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}" ' 
-              ./${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml
-        
-    - name: Print Chart.yaml after change
-      run: cat ${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml
+        name: helm-chart
+        path: ${{ runner.temp }}/helm-chart
 
-    - name: Lint helm
-      working-directory: ${{ env.HELM_WORKING_DIRECTORY }}
-      run: helm lint . --strict
+    # Helm keeps its own registry credentials, so it needs its own login; cosign uses docker/login-action's.
+    - name: Login to GHCR using Helm
+      run: echo "$GHCR_PASSWORD" | helm registry login ghcr.io --username "$GHCR_USERNAME" --password-stdin
 
-    - name: Commit chart version change
-      uses: planetscale/ghcommit-action@v0.1.33
-      with:
-        commit_message: "Change chart version to ${{ needs.Build-and-Push-Docker.outputs.docker_image_version }}"
-        repo: ${{ github.repository }}
-        branch: ${{ env.BRANCH }}
-        file_pattern: '${{ env.HELM_WORKING_DIRECTORY }}/Chart.yaml'
+    # Check-Helm falls back to the chart's placeholder version when it gets none, and pushing that would replace
+    # a chart that is already published.
+    - name: Check that the chart version is the tag's
       env:
-        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        CHART_VERSION: ${{ needs.Check-Helm.outputs.chart_version }}
+      run: |
+        if [[ "$CHART_VERSION" != "${GITHUB_REF_NAME#v}" ]]; then
+          echo "::error::The checked chart has version '$CHART_VERSION', not the tag's version ${GITHUB_REF_NAME#v}. Nothing was pushed."
+          exit 1
+        fi
+
+    - name: Publish chart to GHCR
+      env:
+        CHART_FILE: ${{ needs.Check-Helm.outputs.chart_file }}
+        REGISTRY_LOWERCASE: ${{ needs.Check-Helm.outputs.registry_lowercase }}
+      run: helm push "$RUNNER_TEMP/helm-chart/$CHART_FILE" "oci://$REGISTRY_LOWERCASE"
+
+  Sign-Helm-Chart:
+    needs: [Check-Helm, Push-Helm]
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      packages: write
+
+    steps:
+      - name: Login to GitHub container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.GHCR_USERNAME }}
+          password: ${{ env.GHCR_PASSWORD }}
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.1.3
+
+      - name: Create signing config without Rekor
+        run: |
+          curl -s https://raw.githubusercontent.com/sigstore/root-signing/refs/heads/main/targets/signing_config.v0.2.json \
+            | jq 'del(.rekorTlogUrls)' > "$RUNNER_TEMP/signing-config-no-tlog.json"
+
+      - name: Sign the chart
+        run: |
+          cosign sign ${{needs.Check-Helm.outputs.registry_lowercase}}/${{ needs.Check-Helm.outputs.chart_name }}:${{ needs.Check-Helm.outputs.chart_version }} \
+            --yes \
+            --signing-config "$RUNNER_TEMP/signing-config-no-tlog.json"
+
+      - name: Verify the signature
+        run: |
+          cosign verify ${{needs.Check-Helm.outputs.registry_lowercase}}/${{ needs.Check-Helm.outputs.chart_name }}:${{ needs.Check-Helm.outputs.chart_version }} \
+            --certificate-identity-regexp '.+github.com\/${{ github.repository_owner }}.+' \
+            --certificate-oidc-issuer ${{ env.OIDC_ISSUER }} \
+            --insecure-ignore-tlog=true

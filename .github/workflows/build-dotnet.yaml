@@ -2,7 +2,7 @@ name: Build-Dotnet
 
 on:
   workflow_dispatch:
-  # Build-Docker calls this workflow as its release gate; path filters do not apply to calls.
+  # Release calls this workflow as its release gate; path filters do not apply to calls.
   workflow_call:
   # src/** includes the solution, src/ExampleNet.slnx.
   push:

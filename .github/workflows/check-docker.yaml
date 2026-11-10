@@ -2,8 +2,6 @@ name: Check-Docker
 
 # Builds the container image to prove the Dockerfile still builds. It never pushes, signs or
 # publishes anything: no registry login, read-only permissions, push: false.
-# Never name this workflow Build-Docker: Build-Helm starts on any completed run with that name
-# and publishes the chart when it succeeded.
 
 on:
   workflow_dispatch:
@@ -36,12 +34,12 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
-    # Same action and default builder as Build-Docker, so this builds the image the way a release does.
+    # Same action and default builder as Release, so this builds the image the way a release does.
     - name: Build image (not pushed)
       uses: docker/build-push-action@v7
       with:
         context: .
-        # Must match the list in build-docker.yaml.
+        # Must match the list in release.yaml.
         platforms: linux/amd64,linux/arm64
         push: false
         tags: example-net-docker:check

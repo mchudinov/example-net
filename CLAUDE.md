@@ -100,7 +100,7 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
   - `helm lint` only logs the `fail` at INFO level, so test the guard with `helm template`.
   - Delete the file once deployers have migrated.
 - **Argo Rollouts** (`rollout.enabled`). This swaps the Deployment for `rollout-bluegreen.yaml` plus preview service/ingress. `rollout-canary.yaml` is an empty stub. The blue-green template is out of sync with `deployment.yaml`: it uses containerPort 8080, probes `/`, and has no env vars. Changes to `deployment.yaml` are not reflected there.
-- **Default image.** `image.repository` must be `ghcr.io/mchudinov/example-net-docker`, the path Build-Docker pushes to. The workflows derive that path from the repo owner while the chart hard-codes it, and CI doesn't compare them, so update the default if the repo moves. Both packages are public, so the chart has no default pull secret.
+- **Default image.** `image.repository` must be `ghcr.io/mchudinov/example-net-docker`, the path Release pushes to. The workflows derive that path from the repo owner while the chart hard-codes it, and CI doesn't compare them, so update the default if the repo moves. Both packages are public, so the chart has no default pull secret.
 - **Cluster prerequisites.** The chart expects priority class `user-normal`.
 
 ## CI/CD and versioning (`.github/workflows/`)
@@ -119,35 +119,36 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
    - `src/**`
    - its own workflow file
 
-   It uses the same `docker/build-push-action` and default builder as Build-Docker, and builds `linux/amd64` and `linux/arm64`. Keep its `platforms` list identical to Build-Docker's. It only builds:
+   It uses the same `docker/build-push-action` and default builder as Release, and builds `linux/amd64` and `linux/arm64`. Keep its `platforms` list identical to Release's. It only builds:
    - `push: false`;
    - read-only permissions and no registry login;
    - no layer cache;
    - no container run, so it doesn't show that the image starts on either platform.
 
    It runs in parallel with Build-Dotnet. `tests/**` and `helm/**` changes don't trigger it, because `.dockerignore` keeps `tests/` out of the build.
-
-   **Never name it `Build-Docker`.** Build-Helm starts on any completed run with that name, and publishes the chart when it succeeded.
-3. Pushing a `v*` tag runs **Build-Docker**, which has no manual trigger. Its first job, `Check-Tag`, fails any tag other than `vX.Y.Z`, including a release candidate such as `v1.3.2-rc.1`. The next job, `Test`, calls Build-Dotnet as a release gate. Everything after it runs only if the tests pass:
+3. Pushing a `v*` tag runs **Release** (`release.yaml`), which has no manual trigger. One run builds, checks and publishes everything from the tag's commit, and writes nothing to the repository:
+   - `Check-Tag` runs first. It fails any tag other than `vX.Y.Z`, including a release candidate such as `v1.3.2-rc.1`, and outputs the version without the `v`.
+   - Two gates then run side by side: `Test` calls Build-Dotnet, and `Check-Helm` calls Build-Helm with the tag's version. Nothing is pushed unless both pass.
    - build and push `ghcr.io/<owner>/example-net-docker:<version>` for `linux/amd64` and `linux/arm64` (one multi-platform image, with its `platforms` list identical to Check-Docker's);
    - sign it with cosign (keyless, no Rekor);
-   - have a bot rewrite `helm/Chart.yaml` `version` and `appVersion` to the tag version and commit to `main`.
-4. **Build-Helm** runs in three situations: when Build-Docker completes, on pushes and PRs to `main` that touch `helm/**`, its own workflow file or `.github/scripts/check-chart-labels.sh`, and on manual runs. After a Build-Docker run, it continues only if that run succeeded. Build-Helm finds Build-Docker by name, so don't rename that workflow.
-   - **Every run checks the chart:**
-     - `helm lint . --strict`
-     - install into a k3d cluster
+   - `Push-Helm` downloads the package `Check-Helm` checked, fails unless its version is the tag's, and pushes that same file to GHCR as OCI `example-net-helm`;
+   - `Sign-Helm-Chart` cosign-signs the chart.
+
+   **If a release run fails,** use **Re-run failed jobs** on that same run when the cause was a one-off, such as a stuck k3d cluster. It keeps the tag's commit, and `Push-Helm` reuses the uploaded package, but that path hasn't been used on a release yet. If the cause needs a commit, fix it and push the next patch tag. A failure before the image push publishes nothing; one after it leaves the image without a chart.
+
+   **Never push a release tag on a commit older than the one that added `release.yaml`.** Such a commit still has the old Build-Docker workflow: it would push the image and commit to `main`, and no chart would be published.
+4. **Build-Helm** checks the chart and publishes nothing. Release calls it, and it also runs on pushes and PRs to `main` that touch `helm/**`, its own workflow file or `.github/scripts/check-chart-labels.sh`, and on manual runs. Path filters don't apply when Release calls it.
+   - **Version:** Release passes the tag's version as the `version` input. Every other run uses `Chart.yaml`'s version. A tag push run with no input fails, so a release can never fall back to the placeholder.
+   - **It packages the chart once,** into `$RUNNER_TEMP`, with `--version` and `--app-version` both set to that version, and checks that file:
+     - `helm lint --strict`
+     - a dry-run install, then an install into a k3d cluster. Neither uses `--wait`: in a release the image doesn't exist yet.
      - build-metadata checks, on a package whose version has the form Flux produces (`<version>+662a06b343e7`):
        - `.github/scripts/check-chart-labels.sh` renders it with two value sets and fails on any invalid label value. Together the sets render every template that sets labels, so a new flag guarding a template with labels must be added to a set in `build-helm.yaml`.
        - install into the same k3d cluster, in its own namespace, because object names come from the chart name and would collide with the first install
-     - Fairwinds Polaris audit with `.github/polaris-config.yaml`; fails on any "danger" finding or a score below 90
-   - **Only a run that follows a successful Build-Docker (a release) publishes:**
-     - push the chart to GHCR as OCI `example-net-helm`
-     - cosign-sign the chart
+     - Fairwinds Polaris audit of the `helm/` directory with `.github/polaris-config.yaml`; fails on any "danger" finding or a score below 90
+   - **Last, it uploads the package as the `helm-chart` run artifact.** Release publishes that file. Pushes, PRs and manual runs publish nothing, so a released chart version is never overwritten.
 
-     Pushes, PRs and manual runs publish nothing. So a released chart version is never overwritten, even though `main`'s chart can get ahead of the last release.
-   - **If a release's chart publishing fails,** use **Re-run failed jobs** on that Build-Helm run when the cause was a one-off, such as a stuck k3d cluster. It keeps the release's commit and should publish, but that path hasn't been used on a release yet. If the cause needs a commit, fix it and push the next patch tag. A manual run can't publish.
-
-Do not hand-edit the `Chart.yaml` version fields; the tag drives them. Put `.Chart.Version` in a label only through the `app.chart` helper, which replaces `+`. Changes to the chart's securityContext, probes or resources must keep the Polaris audit passing. Reference third-party actions by a release tag or a commit SHA, never a branch. The `setup-polaris` ref only picks the installer; `POLARIS_VERSION` picks the binary.
+`Chart.yaml`'s `version` and `appVersion` are placeholders that don't follow releases: a release stamps both from its tag when it packages the chart, so don't edit them for a release. Put `.Chart.Version` in a label only through the `app.chart` helper, which replaces `+`. Changes to the chart's securityContext, probes or resources must keep the Polaris audit passing. Reference third-party actions by a release tag or a commit SHA, never a branch. The `setup-polaris` ref only picks the installer; `POLARIS_VERSION` picks the binary.
 
 ## OpenSpec
 
