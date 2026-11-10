@@ -130,7 +130,7 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
    - `Check-Tag` runs first. It fails any tag other than `vX.Y.Z`, including a release candidate such as `v1.3.2-rc.1`, and outputs the version without the `v`.
    - Two gates then run side by side: `Test` calls Build-Dotnet, and `Check-Helm` calls Build-Helm with the tag's version. Nothing is pushed unless both pass.
    - build and push `ghcr.io/<owner>/example-net-docker:<version>` for `linux/amd64` and `linux/arm64` (one multi-platform image, with its `platforms` list identical to Check-Docker's);
-   - sign it with cosign (keyless, no Rekor);
+   - sign it with cosign (keyless, no Rekor; cosign builds the signing config from Sigstore's TUF repository);
    - `Push-Helm` downloads the package `Check-Helm` checked, fails unless its version is the tag's, and pushes that same file to GHCR as OCI `example-net-helm`;
    - `Sign-Helm-Chart` cosign-signs the chart.
 
@@ -148,7 +148,7 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
      - Fairwinds Polaris audit of the `helm/` directory with `.github/polaris-config.yaml`; fails on any "danger" finding or a score below 90
    - **Last, it uploads the package as the `helm-chart` run artifact.** Release publishes that file. Pushes, PRs and manual runs publish nothing, so a released chart version is never overwritten.
 
-`Chart.yaml`'s `version` and `appVersion` are placeholders that don't follow releases: a release stamps both from its tag when it packages the chart, so don't edit them for a release. Put `.Chart.Version` in a label only through the `app.chart` helper, which replaces `+`. Changes to the chart's securityContext, probes or resources must keep the Polaris audit passing. Reference third-party actions by a release tag or a commit SHA, never a branch. The `setup-polaris` ref only picks the installer; `POLARIS_VERSION` picks the binary.
+`Chart.yaml`'s `version` and `appVersion` are placeholders that don't follow releases: a release stamps both from its tag when it packages the chart, so don't edit them for a release. Put `.Chart.Version` in a label only through the `app.chart` helper, which replaces `+`. Changes to the chart's securityContext, probes or resources must keep the Polaris audit passing. Reference third-party actions by a release tag or a commit SHA, never a branch, and download nothing from a branch while a workflow runs. When adding or upgrading an action, read what its scripts download. The `setup-polaris` ref only picks the installer; `POLARIS_VERSION` picks the binary. k3d comes from its release binary, checked against `K3D_SHA256` in `build-helm.yaml`, so bump `K3D_VERSION` and `K3D_SHA256` together.
 
 ## OpenSpec
 

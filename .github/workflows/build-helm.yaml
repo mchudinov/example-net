@@ -106,17 +106,23 @@ jobs:
         CHART_PACKAGE: ${{ steps.helm-package.outputs.CHART_PACKAGE }}
       run: helm lint "$CHART_PACKAGE" --strict
 
+    # k3d's releases aren't immutable, so the checksum is written here rather than read from the release. Bump both values together.
+    - name: Install k3d
+      env:
+        K3D_VERSION: v5.9.0
+        K3D_SHA256: 06d8f25bc3a971c4eb29e0ff08429b180402db0f4dec838c9eac427e296800a0
+      run: |
+        curl -fsSL --retry 3 -o "$RUNNER_TEMP/k3d" "https://github.com/k3d-io/k3d/releases/download/$K3D_VERSION/k3d-linux-amd64"
+        echo "$K3D_SHA256  $RUNNER_TEMP/k3d" | sha256sum -c -
+        sudo install "$RUNNER_TEMP/k3d" /usr/local/bin/k3d
+
     # k3d waits for its nodes with no limit of its own. The timeout kills only the k3d client, so the containers stay for the next step.
     - name: Create a test k3d cluster for dry-run install
       id: k3d
-      uses: AbsaOSS/k3d-action@v2
       timeout-minutes: 5
-      with:
-        cluster-name: "test-cluster"
-        # The action runs k3d's install.sh from its main branch. That script also downloads the release's
-        # checksums.txt (k3d-io/k3d#1653), which the action's default k3d v5.4.6 doesn't publish (HTTP 404).
-        k3d-version: v5.9.0
-        args: --agents 1
+      run: |
+        k3d cluster create test-cluster --agents 1 --wait
+        kubectl wait --for=condition=Ready nodes --all --timeout=5m
 
     - name: Show the k3d containers and logs after a failed cluster start
       if: failure() && steps.k3d.outcome == 'failure'
