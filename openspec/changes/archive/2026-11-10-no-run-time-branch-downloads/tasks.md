@@ -116,7 +116,7 @@ If task 2.2 failed and the user chose design D4, use D4's run lines in tasks 3.1
   Verify that the run after the edits reports no finding that the run before them didn't.
 
   *Result (2026-11-10):* the zip matched its checksum line. The baseline ran before the edits, without `git stash`, because no workflow had been edited yet. Both runs exited 0 with no output, so there are no findings before or after.
-- [ ] 6.4 Commit on `main`, staging `.github/workflows/release.yaml`, `.github/workflows/build-helm.yaml`, `CLAUDE.md` and `openspec/changes/no-run-time-branch-downloads/` by name. Ask the user, and push. Verify with `gh run list --commit <sha>` that `Build-Helm` ran and succeeded, and that `Check-Docker` and `Build-Dotnet` didn't run. In the `Build-Helm` log, verify that:
+- [x] 6.4 Commit on `main`, staging `.github/workflows/release.yaml`, `.github/workflows/build-helm.yaml`, `CLAUDE.md` and `openspec/changes/no-run-time-branch-downloads/` by name. Ask the user, and push. Verify with `gh run list --commit <sha>` that `Build-Helm` ran and succeeded, and that `Check-Docker` and `Build-Dotnet` didn't run. In the `Build-Helm` log, verify that:
   - `Install k3d` printed `OK`;
   - `Create a test k3d cluster for dry-run install` shows `condition met` for every node;
   - the diagnostics step was skipped;
@@ -124,4 +124,13 @@ If task 2.2 failed and the user chose design D4, use D4's run lines in tasks 3.1
   - no `raw.githubusercontent.com` URL appears anywhere in the log.
 
   If the run fails, stop and tell the user.
-- [ ] 6.5 Tell the user that `cosign sign` hasn't yet run with the new config on an image or a chart, and that the next `v*` tag is its first run (design D8, Risks). Verify by recording here that this change proved the config only with `sign-blob` (task 2.2), and did not cut a release.
+
+  *Result (2026-11-10):* commit `08433d3`, pushed together with `86bba26` after the user approved. Run 42910555875 was the only run for either commit. `Build-Helm` / `Check-Helm` succeeded, and `Check-Docker` and `Build-Dotnet` didn't run.
+  - `Install k3d` printed `/home/runner/work/_temp/k3d: OK`.
+  - The cluster step logged `Cluster 'test-cluster' created successfully!`, then `condition met` for `k3d-test-cluster-agent-0` and `k3d-test-cluster-server-0`.
+  - The diagnostics step was skipped.
+  - Both test installs, the label checks, Polaris and the upload succeeded.
+  - The run's log has no `raw.githubusercontent.com` line.
+- [x] 6.5 Tell the user that `cosign sign` hasn't yet run with the new config on an image or a chart, and that the next `v*` tag is its first run (design D8, Risks). Verify by recording here that this change proved the config only with `sign-blob` (task 2.2), and did not cut a release.
+
+  *Result (2026-11-10):* the user was told in the closing summary. This change proved the generated config only with `sign-blob` and `verify-blob`, in run 42909961721 (task 2.2), and did not cut a release.

@@ -82,6 +82,8 @@ Docker images are published for `linux/amd64` and `linux/arm64`, starting with t
 
 Both the Docker image and the Helm chart will be pushed to the GitHub Container Registry under the *mchudinov* account. Both packages are public.
 
+The practices the workflows follow, and the known gaps, are described in [CI/CD best practices](docs/ci-cd-best-practices.md).
+
 ## Configuration
 
 ### Logging
