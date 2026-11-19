@@ -1,0 +1,21 @@
+# Every text file is stored with LF and checked out with LF, on Windows and on Linux alike,
+# whatever core.autocrlf or core.eol says on the machine. Files are edited on both platforms,
+# and CI reads them on Linux: a line-anchored check or a version read with sed sees exactly the
+# bytes a local checkout has. The Check-Line-Endings workflow fails on a committed CRLF file.
+# See openspec/specs/ci-test-gate ("Text files reach verification with LF line endings").
+* text=auto eol=lf
+
+# text=auto calls a file binary only if it finds a NUL byte in its first 8,000 bytes. These types
+# are binary whatever their content, so detection never decides for them. Later lines override
+# earlier ones, which is why they follow the rule above. One pattern per line: a line holding
+# several patterns is not a list.
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.woff binary
+*.woff2 binary

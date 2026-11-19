@@ -1,0 +1,80 @@
+name: Check-Line-Endings
+
+# Fails when a committed text file is stored with CRLF line endings, and names each one.
+# .gitattributes stores every text file as LF, so in normal work no such file reaches a commit.
+# This catches the rule being bypassed or removed.
+
+on:
+  workflow_dispatch:
+  # Release calls this workflow as one of its gates.
+  workflow_call:
+  # No paths filter: the rule covers every file, including files no other workflow watches, such as
+  # .gitattributes itself, docs/ and openspec/. A list of paths would miss whatever it doesn't name.
+  # The branch filter keeps a pushed v* tag from starting a second run beside Release's call.
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  Check-Line-Endings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - uses: actions/checkout@v7
+
+    # git ls-files --eol reports how each file is stored (i/...), not how it is checked out, plus
+    # its attributes. A file with -text (which binary also sets) is stored as it is, so it is skipped.
+    # A file declared eol=crlf is still stored as LF, so it needs no exemption, and one stored as
+    # CRLF anyway is reported.
+    - name: No committed text file has CRLF line endings
+      run: |
+        # Workflow commands need %, CR and LF escaped in data, and also : and , in a property.
+        escape_data() {
+          local s=$1
+          s=${s//\%/%25}; s=${s//$'\r'/%0D}; s=${s//$'\n'/%0A}
+          printf '%s' "$s"
+        }
+        escape_property() {
+          local s
+          s=$(escape_data "$1")
+          s=${s//:/%3A}; s=${s//,/%2C}
+          printf '%s' "$s"
+        }
+
+        listing=$(mktemp)
+        git ls-files --eol -z > "$listing"
+
+        count=0
+        bad=0
+        # Each record is "i/<eol> w/<eol> attr/<attributes>", a TAB, then the path, ending in NUL.
+        while IFS= read -r -d '' record; do
+          count=$((count + 1))
+          info=${record%%$'\t'*}
+          path=${record#*$'\t'}
+          read -r index_eol _ attributes <<< "$info"
+          attributes=${attributes#attr/}
+          if [[ $index_eol == i/crlf || $index_eol == i/mixed ]] && [[ " $attributes " != *" -text "* ]]; then
+            bad=$((bad + 1))
+            echo "::error file=$(escape_property "$path")::$(escape_data "$path") is stored with CRLF line endings ($index_eol). Fix it with: git add --renormalize -- '$(escape_data "$path")'"
+          fi
+        done < "$listing"
+
+        # A check that read nothing would pass, so an empty listing fails.
+        if (( count == 0 )); then
+          echo "::error::git ls-files listed no files, so there was nothing to check"
+          exit 1
+        fi
+        if (( bad > 0 )); then
+          echo "$bad of $count committed files are stored with CRLF line endings."
+          exit 1
+        fi
+        echo "Read $count committed files. None is a text file stored with CRLF line endings."

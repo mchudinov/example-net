@@ -21,7 +21,7 @@ chart=$1
 shift
 
 # Without a "+" in the version an unescaped label is valid, and passing would prove nothing.
-version=$(helm show chart "$chart" | tr -d '\r' | sed -n 's/^version: *//p')
+version=$(helm show chart "$chart" | sed -n 's/^version: *//p')
 if [[ $version != *+* ]]; then
   echo "::error::chart version '$version' has no build metadata, so the label check would prove nothing"
   exit 1
@@ -31,7 +31,7 @@ echo "Checking labels at chart version $version with: ${*:-default values}"
 
 # Line-based on purpose: rendered labels are plain block-style YAML, and awk is on every runner.
 # The regex has no {n} intervals because the default awk on the runner is mawk.
-helm template check "$chart" "$@" | tr -d '\r' | awk '
+helm template check "$chart" "$@" | awk '
   # "# Source: <chart>/templates/<file>" comes before each rendered document.
   /^# Source: / {
     template = $3

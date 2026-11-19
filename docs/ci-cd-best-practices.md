@@ -12,6 +12,7 @@ Status:
 
 Line references were checked against the workflows when this page was written. If you change a workflow, update its line here as well.
 
+- [Repository](#repository)
 - [Triggers and gating](#triggers-and-gating)
 - [Security and supply chain](#security-and-supply-chain)
 - [.NET build and test](#net-build-and-test)
@@ -20,13 +21,31 @@ Line references were checked against the workflows when this page was written. I
 - [Release](#release)
 - [What to do next](#what-to-do-next)
 
+## Repository
+
+### Every text file is LF in every checkout ✅
+
+The same file can have LF in CI and CRLF in a Windows checkout. A pattern anchored at the end of a line, or a version read with `sed`, then passes in one place and fails in the other. In another repository built the same way, that difference hid a failing chart check for two months.
+
+Three things hold the rule:
+
+- **[`.gitattributes`](../.gitattributes)** sets `* text=auto eol=lf`.
+  - Git stores every text file as LF and checks it out as LF on every platform, whatever `core.autocrlf` says on the machine.
+  - Binary types are listed explicitly, so that detection never decides for them.
+- **[`.editorconfig`](../.editorconfig)** sets `end_of_line = lf`, so that editors save LF in the first place.
+- **Check-Line-Endings** ([`check-line-endings.yaml`](../.github/workflows/check-line-endings.yaml)) fails on any text file stored with CRLF, and names the file.
+  - It has no path filter, so it runs on every push and pull request.
+  - Release runs it as a gate before the image push.
+
+`git pull` doesn't rewrite a clone whose files are CRLF on disk when the rule arrives. CLAUDE.md says how to find and fix such a clone.
+
 ## Triggers and gating
 
 ### Every input to a build triggers the check that covers it ⚠️
 
 A path filter decides which changes run which check. A filter that lists what to include fails open: a new input that nobody adds to the list is never checked. A filter that lists what to skip, such as docs only, fails safe, but it costs extra runs.
 
-All four workflows use include lists. Three inputs aren't covered:
+Four of the five workflows use include lists. Check-Line-Endings has none, because its rule covers every file. Three inputs aren't covered:
 
 - `.github/polaris-config.yaml` isn't in Build-Helm's `paths` ([`build-helm.yaml:28-39`](../.github/workflows/build-helm.yaml)). A change to the policy that gates the chart runs nothing.
 - `release.yaml` runs only on a tag. A change to it isn't checked by anything until the next release. Workflow linting (below) is the cheapest cover for this.
@@ -54,7 +73,7 @@ None of the workflows set `concurrency`. Two things to get right:
 
 A job with no `timeout-minutes` runs for up to six hours. Before Build-Helm got its step timeout, the k3d step once hung for nearly three hours until someone cancelled it by hand.
 
-Today only that one step has a limit: `timeout-minutes: 5` ([`build-helm.yaml:122`](../.github/workflows/build-helm.yaml)). Set `timeout-minutes` on every job too. A job that calls a reusable workflow (`uses:`) can't take `timeout-minutes`, so set the limit on the jobs inside Build-Dotnet and Build-Helm.
+Today only that step and the Check-Line-Endings job have a limit, both `timeout-minutes: 5` ([`build-helm.yaml:122`](../.github/workflows/build-helm.yaml), [`check-line-endings.yaml:29`](../.github/workflows/check-line-endings.yaml)). Set `timeout-minutes` on every job too. A job that calls a reusable workflow (`uses:`) can't take `timeout-minutes`, so set the limit on the jobs inside Build-Dotnet and Build-Helm.
 
 ## Security and supply chain
 
@@ -64,7 +83,7 @@ Set `permissions:` at the top of every workflow, as `contents: read` or `{}`, an
 
 What the workflows do now:
 
-- **Build-Dotnet and Check-Docker:** set `contents: read` at the top. ✅
+- **Build-Dotnet, Check-Docker and Check-Line-Endings:** set `contents: read` at the top. ✅
 - **Release:** sets permissions on every job. `Check-Tag` gets `{}`. ✅
 - **Build-Helm:** has no `permissions:` block at all. ⚠️ On its own runs it gets the repository default, which is read today. When Release calls it, Release's `contents: read` applies.
 
@@ -86,7 +105,7 @@ Eleven steps still put `${{ }}` inside `run:`:
 
 - `build-dotnet.yaml:47`, `:54-55`
 - `build-helm.yaml:81`, `:86-88`, `:188-192`
-- `release.yaml:84-86`, `:90-93`, `:138`, `:144-146`, `:213`, `:219-221`
+- `release.yaml:91-93`, `:97-100`, `:145`, `:151-153`, `:220`, `:226-228`
 
 None of these values can be set by an attacker today. They are the owner name, the registry, digests, and versions from a tag that `Check-Tag` has already validated. The risk is a later edit that adds one that can.
 
@@ -108,7 +127,7 @@ What's pinned:
 
 What floats:
 
-- **Helm** floats: `azure/setup-helm` has no `version:` ([`build-helm.yaml:61`](../.github/workflows/build-helm.yaml), [`release.yaml:159`](../.github/workflows/release.yaml)). ⚠️
+- **Helm** floats: `azure/setup-helm` has no `version:` ([`build-helm.yaml:61`](../.github/workflows/build-helm.yaml), [`release.yaml:166`](../.github/workflows/release.yaml)). ⚠️
 - **Base images** are referenced by tag, not digest (`sdk:10.0` and `aspnet:10.0-noble-chiseled` in the [`Dockerfile`](../Dockerfile)). ⚠️ A digest pin makes rebuilds reproducible. Dependabot can bump it when Microsoft ships a patched image.
 - **The .NET SDK** floats within 10.0 (`10.0.x` plus `latestFeature` in `global.json`). That is deliberate: it picks up servicing fixes. 📌
 
@@ -135,9 +154,9 @@ A signature by tag signs whatever the tag points at when cosign resolves it. A v
 
 What the release does today:
 
-- **The image is signed by digest** ([`release.yaml:138`](../.github/workflows/release.yaml)). ✅
-- **The chart is signed and verified by tag** (`release.yaml:213`, `:219`). ⚠️ `helm push` prints the digest it pushed. Capture it and sign `.../example-net-helm@sha256:...`.
-- **The verify identity is too loose** (`release.yaml:145`, `:220`). ⚠️ The regex `.+github.com\/<owner>.+` doesn't stop at the owner name, so `github.com/mchudinov-anything/...` passes. It also accepts any repository and any workflow of the owner. Verify the exact identity instead: `--certificate-identity "https://github.com/$GITHUB_REPOSITORY/.github/workflows/release.yaml@$GITHUB_REF"`.
+- **The image is signed by digest** ([`release.yaml:145`](../.github/workflows/release.yaml)). ✅
+- **The chart is signed and verified by tag** (`release.yaml:220`, `:226`). ⚠️ `helm push` prints the digest it pushed. Capture it and sign `.../example-net-helm@sha256:...`.
+- **The verify identity is too loose** (`release.yaml:152`, `:227`). ⚠️ The regex `.+github.com\/<owner>.+` doesn't stop at the owner name, so `github.com/mchudinov-anything/...` passes. It also accepts any repository and any workflow of the owner. Verify the exact identity instead: `--certificate-identity "https://github.com/$GITHUB_REPOSITORY/.github/workflows/release.yaml@$GITHUB_REF"`.
 - **Rekor is off.** ❓ The signing config still includes Sigstore's timestamp authority (`timestamp.sigstore.dev`), so each signature should carry a trusted timestamp that keeps it verifiable after the 10-minute Fulcio certificate expires. Nobody has verified a released artifact after expiry yet. Do that once, and publish the consumer's `cosign verify` command in the README.
 
 ### Workflows are linted ❌
@@ -186,7 +205,7 @@ The SDK stage runs on the build machine's platform and publishes for `$TARGETARC
 
 ### CI builds the image exactly as the release does ⚠️
 
-Check-Docker and Release use the same action, the same default builder and the same platform list. The lists are kept equal only by a comment on each ([`check-docker.yaml:42-43`](../.github/workflows/check-docker.yaml), [`release.yaml:107-108`](../.github/workflows/release.yaml)), and Release doesn't reuse Check-Docker the way it reuses Build-Dotnet and Build-Helm.
+Check-Docker and Release use the same action, the same default builder and the same platform list. The lists are kept equal only by a comment on each ([`check-docker.yaml:42-43`](../.github/workflows/check-docker.yaml), [`release.yaml:114-115`](../.github/workflows/release.yaml)), and Release doesn't reuse Check-Docker the way it reuses Build-Dotnet and Build-Helm.
 
 Two ways to make the platform lists stay equal:
 
@@ -238,7 +257,7 @@ Fairwinds Polaris audits the chart with [`.github/polaris-config.yaml`](../.gith
 
 ### The published chart is the exact file that was checked ✅
 
-Build-Helm packages the chart once and uploads it as the `helm-chart` artifact. Release downloads that file, checks that its version equals the tag's ([`release.yaml:173-180`](../.github/workflows/release.yaml)), and pushes it unchanged.
+Build-Helm packages the chart once and uploads it as the `helm-chart` artifact. Release downloads that file, checks that its version equals the tag's ([`release.yaml:180-187`](../.github/workflows/release.yaml)), and pushes it unchanged.
 
 ## Release
 
@@ -254,17 +273,17 @@ The single Release workflow has so far run only on a test tag, which it rejected
 
 ### Nothing is published until every check passes ✅
 
-The image push waits for both `Test` and `Check-Helm` (`needs: [Test, Check-Helm]`). The chart is pushed only after the image is signed.
+The image push waits for `Test`, `Check-Helm` and `Check-Line-Endings` (`needs: [Test, Check-Helm, Check-Line-Endings]`). The chart is pushed only after the image is signed.
 
 ### The release reuses the CI workflows ⚠️
 
-`Test` calls Build-Dotnet and `Check-Helm` calls Build-Helm through `workflow_call`. So the checks a release runs are exactly the ones that run on a push. The image build is the exception, as described under [Container image](#container-image).
+`Test` calls Build-Dotnet, `Check-Helm` calls Build-Helm, and `Check-Line-Endings` calls Check-Line-Endings, all through `workflow_call`. So the checks a release runs are exactly the ones that run on a push. The image build is the exception, as described under [Container image](#container-image).
 
 ### Inline scripts run in strict mode ⚠️
 
-When a step doesn't name a shell, GitHub runs it with `bash -e`, without `pipefail`. A failure on the left of a pipe is then ignored. [`check-chart-labels.sh`](../.github/scripts/check-chart-labels.sh) uses `set -euo pipefail`, but the inline steps don't.
+When a step doesn't name a shell, GitHub runs it with `bash -e`, without `pipefail`. A failure on the left of a pipe is then ignored. [`check-chart-labels.sh`](../.github/scripts/check-chart-labels.sh) uses `set -euo pipefail`, and Check-Line-Endings sets the `defaults` below. The inline steps of the other workflows have neither.
 
-Add the following to every workflow. It gives each inline step `bash --noprofile --norc -eo pipefail`:
+Add the following to every other workflow. It gives each inline step `bash --noprofile --norc -eo pipefail`:
 
 ```yaml
 defaults:

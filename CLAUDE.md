@@ -76,6 +76,23 @@ The README's `docker run --publish 50001:8080` example is wrong: the container l
 - **`.dockerignore` must keep `**/bin` and `**/obj`.** Without them, the source copy overwrites the container's restore output with the host's `obj/project.assets.json`, and the publish fails (MSB4018 about a missing Windows NuGet fallback folder). It also excludes `.git`, `.vs`, `TestResults`, `tests`, `helm`, `openspec` and `appsettings.local.json`.
 - **The test project also sets `IsPublishable=false`,** so a solution-level `dotnet publish` skips it.
 
+## Line endings
+
+- **Every text file is LF, in the repository and in every checkout.**
+  - `.gitattributes` (`* text=auto eol=lf`) decides this, whatever `core.autocrlf` or `core.eol` says on the machine.
+  - `git add` stores a CRLF file as LF and warns "CRLF will be replaced by LF".
+  - Types listed there as `binary`, and files Git detects as binary, are stored unchanged.
+  - Don't strip `\r` in a script to cope with CRLF. Fix the file.
+- **`.editorconfig` holds `end_of_line = lf` and nothing else.**
+  - Visual Studio and Rider read it. VS Code needs the EditorConfig extension.
+  - The C# compiler also reads it, as analyzer configuration. `end_of_line` changes no build.
+  - A `dotnet_diagnostic.*` entry would turn the file into a root-level build file. It would then need its own `COPY` in the Dockerfile and entries in Check-Docker's and Build-Dotnet's `paths`.
+- **Check-Line-Endings fails CI on a text file stored with CRLF and names the file.** See CI/CD below.
+- **Git Bash's `grep` drops the CR before matching.** A CRLF file therefore looks fine to it on Windows. To see what Linux sees, use `grep -U` or `od -c`.
+- **A clone whose files are CRLF on disk isn't rewritten by `git pull`,** because no stored file changed.
+  - **Find:** `git ls-files --eol | grep w/crlf` lists those files.
+  - **Fix:** on a clean tree, run `git ls-files -z | xargs -0 rm -f` and then `git checkout-index -a`. `git checkout .` alone rewrites nothing.
+
 ## Configuration flow
 
 - `Program.Main` builds its **own** `ConfigurationBuilder`: `appsettings.json` → `appsettings.{DOTNET_ENVIRONMENT}.json` (optional) → environment variables. It then feeds that into the host. It keys on `DOTNET_ENVIRONMENT`, not `ASPNETCORE_ENVIRONMENT`.
@@ -128,7 +145,12 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
    It runs in parallel with Build-Dotnet. `tests/**` and `helm/**` changes don't trigger it, because `.dockerignore` keeps `tests/` out of the build.
 3. Pushing a `v*` tag runs **Release** (`release.yaml`), which has no manual trigger. One run builds, checks and publishes everything from the tag's commit, and writes nothing to the repository:
    - `Check-Tag` runs first. It fails any tag other than `vX.Y.Z`, including a release candidate such as `v1.3.2-rc.1`, and outputs the version without the `v`.
-   - Two gates then run side by side: `Test` calls Build-Dotnet, and `Check-Helm` calls Build-Helm with the tag's version. Nothing is pushed unless both pass.
+   - Three gates then run side by side:
+     - `Test` calls Build-Dotnet;
+     - `Check-Helm` calls Build-Helm with the tag's version;
+     - `Check-Line-Endings` calls Check-Line-Endings.
+
+     Nothing is pushed unless all three pass.
    - build and push `ghcr.io/<owner>/example-net-docker:<version>` for `linux/amd64` and `linux/arm64` (one multi-platform image, with its `platforms` list identical to Check-Docker's);
    - sign it with cosign (keyless, no Rekor; cosign builds the signing config from Sigstore's TUF repository);
    - `Push-Helm` downloads the package `Check-Helm` checked, fails unless its version is the tag's, and pushes that same file to GHCR as OCI `example-net-helm`;
@@ -147,6 +169,14 @@ All three health endpoints run the same check, `StartupReadyCheck`. It reports u
        - install into the same k3d cluster, in its own namespace, because object names come from the chart name and would collide with the first install
      - Fairwinds Polaris audit of the `helm/` directory with `.github/polaris-config.yaml`; fails on any "danger" finding or a score below 90
    - **Last, it uploads the package as the `helm-chart` run artifact.** Release publishes that file. Pushes, PRs and manual runs publish nothing, so a released chart version is never overwritten.
+5. **Check-Line-Endings** fails when a committed text file is stored with CRLF line endings, and writes one `::error` per file.
+   - **When it runs:**
+     - on every push and PR to `main`, with no path filter;
+     - on manual runs;
+     - as Release's third gate.
+   - **What it reads.** `git ls-files --eol` reports how each file is stored (`i/crlf`, `i/mixed`), not the working tree.
+   - **What it skips.** Files whose attributes unset `text` (`-text`, which `binary` also sets). A file declared `eol=crlf` is still stored as LF, so it needs no exemption, and one stored as CRLF anyway is reported.
+   - **When there is nothing to read.** It fails if `git ls-files` lists no files at all.
 
 `Chart.yaml`'s `version` and `appVersion` are placeholders that don't follow releases: a release stamps both from its tag when it packages the chart, so don't edit them for a release. Put `.Chart.Version` in a label only through the `app.chart` helper, which replaces `+`. Changes to the chart's securityContext, probes or resources must keep the Polaris audit passing. Reference third-party actions by a release tag or a commit SHA, never a branch, and download nothing from a branch while a workflow runs. When adding or upgrading an action, read what its scripts download. The `setup-polaris` ref only picks the installer; `POLARIS_VERSION` picks the binary. k3d comes from its release binary, checked against `K3D_SHA256` in `build-helm.yaml`, so bump `K3D_VERSION` and `K3D_SHA256` together.
 
